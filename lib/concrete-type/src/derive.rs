@@ -38,6 +38,7 @@ fn parse(input: &DeriveInput) -> syn::Result<ConcreteEnum> {
         exported: matches!(input.vis, Visibility::Public(_)),
         bound: bound::parse(&input.attrs)?,
         variants,
+        remainder: None,
     })
 }
 

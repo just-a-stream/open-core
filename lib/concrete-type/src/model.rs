@@ -7,6 +7,7 @@ pub struct ConcreteEnum {
     pub exported: bool,
     pub bound: Option<TokenStream>,
     pub variants: Vec<ConcreteVariant>,
+    pub remainder: Option<Path>,
 }
 
 pub struct ConcreteVariant {

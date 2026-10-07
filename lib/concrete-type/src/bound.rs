@@ -30,10 +30,15 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         return TokenStream::new();
     };
     let param = fresh_param(bound);
-    let assertions = concrete_enum.variants.iter().map(|variant| {
+    let variant_assertions = concrete_enum.variants.iter().map(|variant| {
         let concrete = &variant.concrete;
         quote_spanned! { variant.ident.span() => assert_bound::<#concrete>(); }
     });
+    let remainder_assertion = concrete_enum
+        .remainder
+        .as_ref()
+        .map(|remainder| quote! { assert_bound::<#remainder>(); });
+    let assertions = variant_assertions.chain(remainder_assertion);
 
     quote! {
         const _: () = {
