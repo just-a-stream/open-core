@@ -33,8 +33,8 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-concrete-type = "0.2.0"
-concrete-type-rules = "0.1.0"
+concrete-type = "0.3"
+concrete-type-rules = "0.1"
 ```
 
 ## Features

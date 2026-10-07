@@ -30,16 +30,8 @@
 //!
 //! ### Basic Usage with `Concrete`
 //!
-//! ```rust,ignore
+//! ```rust
 //! use concrete_type::Concrete;
-//!
-//! #[derive(Concrete, Clone, Copy)]
-//! enum Exchange {
-//!     #[concrete = "crate::exchanges::Binance"]
-//!     Binance,
-//!     #[concrete = "crate::exchanges::Coinbase"]
-//!     Coinbase,
-//! }
 //!
 //! mod exchanges {
 //!     pub struct Binance;
@@ -56,19 +48,29 @@
 //!     }
 //! }
 //!
-//! // Use the auto-generated exchange! macro for type-level dispatch
-//! let exchange = Exchange::Binance;
-//! let name = exchange!(exchange; ExchangeImpl => {
-//!     // ExchangeImpl is aliased to the concrete type
-//!     let instance = ExchangeImpl::new();
-//!     instance.name()
-//! });
-//! assert_eq!(name, "binance");
+//! #[derive(Concrete, Clone, Copy)]
+//! enum Exchange {
+//!     #[concrete = "crate::exchanges::Binance"]
+//!     Binance,
+//!     #[concrete = "crate::exchanges::Coinbase"]
+//!     Coinbase,
+//! }
+//!
+//! fn main() {
+//!     // Use the auto-generated exchange! macro for type-level dispatch
+//!     let exchange = Exchange::Binance;
+//!     let name = exchange!(exchange; ExchangeImpl => {
+//!         // ExchangeImpl is aliased to the concrete type
+//!         let instance = ExchangeImpl::new();
+//!         instance.name()
+//!     });
+//!     assert_eq!(name, "binance");
+//! }
 //! ```
 //!
 //! ### Using `ConcreteConfig` with Configuration Data
 //!
-//! ```rust,ignore
+//! ```rust
 //! use concrete_type::ConcreteConfig;
 //!
 //! // Define concrete types and configuration types
@@ -98,18 +100,21 @@
 //!     Binance(exchanges::BinanceConfig),
 //! }
 //!
-//! // Using the auto-generated macro with access to both type and config
-//! let config = ExchangeConfig::Binance(
-//!     exchanges::BinanceConfig { api_key: "secret".to_string() }
-//! );
+//! fn main() {
+//!     // Using the auto-generated macro with access to both type and config
+//!     let config = ExchangeConfig::Binance(
+//!         exchanges::BinanceConfig { api_key: "secret".to_string() }
+//!     );
 //!
-//! let name = exchange_config!(config; (Exchange, cfg) => {
-//!     // Inside this block:
-//!     // - Exchange is the concrete type
-//!     // - cfg is the configuration instance (BinanceConfig)
-//!     use exchanges::ExchangeApi;
-//!     Exchange::new(cfg).name()
-//! });
+//!     let name = exchange_config!(config; (Exchange, cfg) => {
+//!         // Inside this block:
+//!         // - Exchange is the concrete type
+//!         // - cfg is the configuration instance (BinanceConfig)
+//!         use exchanges::ExchangeApi;
+//!         Exchange::new(cfg).name()
+//!     });
+//!     assert_eq!(name, "binance");
+//! }
 //! ```
 //!
 //! See the crate documentation and examples for more details.
@@ -152,8 +157,13 @@ enum ConfigField {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use concrete_type::Concrete;
+///
+/// mod strategies {
+///     pub struct StrategyA;
+///     pub struct StrategyB;
+/// }
 ///
 /// #[derive(Concrete)]
 /// enum StrategyKind {
@@ -163,12 +173,15 @@ enum ConfigField {
 ///     StrategyB,
 /// }
 ///
-/// // The generated macro is named after the enum in snake_case
-/// let strategy = StrategyKind::StrategyA;
-/// let result = strategy_kind!(strategy; T => {
-///     // T is aliased to strategies::StrategyA here
-///     std::any::type_name::<T>()
-/// });
+/// fn main() {
+///     // The generated macro is named after the enum in snake_case
+///     let strategy = StrategyKind::StrategyA;
+///     let result = strategy_kind!(strategy; T => {
+///         // T is aliased to strategies::StrategyA here
+///         std::any::type_name::<T>()
+///     });
+///     assert!(result.ends_with("strategies::StrategyA"));
+/// }
 /// ```
 ///
 /// This enables type-level programming with enums, where you can define enum variants and
@@ -205,7 +218,7 @@ pub fn derive_concrete(input: TokenStream) -> TokenStream {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use concrete_type::ConcreteConfig;
 ///
 /// // Define concrete types and configuration types
@@ -226,21 +239,25 @@ pub fn derive_concrete(input: TokenStream) -> TokenStream {
 ///     Okx,
 /// }
 ///
-/// // Using the generated macro for a variant with config data
-/// let config = ExchangeConfig::Binance(BinanceConfig { api_key: "key".to_string() });
-/// let result = exchange_config!(config; (Exchange, cfg) => {
-///     // "Exchange" symbol is concrete type Binance
-///     // "cfg" symbol is a reference to the BinanceConfig instance
-///     format!("{} with config: {:?}", std::any::type_name::<Exchange>(), cfg)
-/// });
+/// fn main() {
+///     // Using the generated macro for a variant with config data
+///     let config = ExchangeConfig::Binance(BinanceConfig { api_key: "key".to_string() });
+///     let result = exchange_config!(config; (Exchange, cfg) => {
+///         // "Exchange" symbol is concrete type Binance
+///         // "cfg" symbol is the BinanceConfig instance
+///         format!("{} with config: {:?}", std::any::type_name::<Exchange>(), cfg)
+///     });
+///     assert!(result.ends_with("Binance with config: BinanceConfig { api_key: \"key\" }"));
 ///
-/// // Using the generated macro for a variant without config data
-/// let config = ExchangeConfig::Okx;
-/// let result = exchange_config!(config; (Exchange, cfg) => {
-///     // "Exchange" symbol is concrete type Okx
-///     // "cfg" symbol is a reference to the unit type () (since the Okx variant doesn't have config)
-///     format!("{} with config: {:?}", std::any::type_name::<Exchange>(), cfg)
-/// });
+///     // Using the generated macro for a variant without config data
+///     let config = ExchangeConfig::Okx;
+///     let result = exchange_config!(config; (Exchange, cfg) => {
+///         // "Exchange" symbol is concrete type Okx
+///         // "cfg" symbol is the unit value () (since the Okx variant doesn't have config)
+///         format!("{} with config: {:?}", std::any::type_name::<Exchange>(), cfg)
+///     });
+///     assert!(result.ends_with("Okx with config: ()"));
+/// }
 /// ```
 #[proc_macro_derive(ConcreteConfig, attributes(concrete))]
 pub fn derive_concrete_config(input: TokenStream) -> TokenStream {

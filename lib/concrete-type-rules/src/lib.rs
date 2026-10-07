@@ -18,9 +18,17 @@
 //!
 //! ### Combined Matcher for Two Enum Types
 //!
-//! ```rust,ignore
+//! ```rust
 //! use concrete_type::Concrete;
 //! use concrete_type_rules::gen_match_concretes_macro;
+//!
+//! mod exchanges {
+//!     pub struct Binance;
+//! }
+//!
+//! mod strategies {
+//!     pub struct StrategyA;
+//! }
 //!
 //! #[derive(Concrete)]
 //! enum Exchange {
@@ -34,26 +42,21 @@
 //!     StrategyA,
 //! }
 //!
-//! mod exchanges {
-//!     pub struct Binance;
-//! }
-//!
-//! mod strategies {
-//!     pub struct StrategyA;
-//! }
-//!
 //! // Generate a combined matcher macro
 //! gen_match_concretes_macro!(Exchange, Strategy);
 //!
-//! // Now you can use the generated macro with both enum instances
-//! let exchange = Exchange::Binance;
-//! let strategy = Strategy::StrategyA;
+//! fn main() {
+//!     // Now you can use the generated macro with both enum instances
+//!     let exchange = Exchange::Binance;
+//!     let strategy = Strategy::StrategyA;
 //!
-//! // This uses a single match expression for both enums
-//! let result = match_exchange_strategy!(exchange, strategy; E, S => {
-//!     // E is exchanges::Binance, S is strategies::StrategyA
-//!     format!("{} + {}", std::any::type_name::<E>(), std::any::type_name::<S>())
-//! });
+//!     // This uses a single match expression for both enums
+//!     let result = match_exchange_strategy!(exchange, strategy; E, S => {
+//!         // E is exchanges::Binance, S is strategies::StrategyA
+//!         format!("{} + {}", std::any::type_name::<E>(), std::any::type_name::<S>())
+//!     });
+//!     assert!(result.ends_with("strategies::StrategyA"));
+//! }
 //! ```
 //!
 //! ### Using With More Enum Types
@@ -101,9 +104,12 @@ pub use paste;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// use concrete_type::Concrete;
 /// use concrete_type_rules::gen_match_concretes_macro;
+///
+/// struct BinanceType;
+/// struct StrategyAType;
 ///
 /// #[derive(Concrete, Clone, Copy)]
 /// enum Exchange {
@@ -117,20 +123,20 @@ pub use paste;
 ///     StrategyA,
 /// }
 ///
-/// struct BinanceType;
-/// struct StrategyAType;
-///
 /// // Generate a combined matcher macro
 /// gen_match_concretes_macro!(Exchange, Strategy);
 ///
-/// // Now you can use the generated macro
-/// let exchange = Exchange::Binance;
-/// let strategy = Strategy::StrategyA;
+/// fn main() {
+///     // Now you can use the generated macro
+///     let exchange = Exchange::Binance;
+///     let strategy = Strategy::StrategyA;
 ///
-/// let result = match_exchange_strategy!(exchange, strategy; E, S => {
-///     // Here E is BinanceType and S is StrategyAType
-///     format!("{}", std::any::type_name::<(E, S)>())
-/// });
+///     let result = match_exchange_strategy!(exchange, strategy; E, S => {
+///         // Here E is BinanceType and S is StrategyAType
+///         format!("{}", std::any::type_name::<(E, S)>())
+///     });
+///     assert!(result.ends_with("StrategyAType)"));
+/// }
 /// ```
 #[macro_export]
 macro_rules! gen_match_concretes_macro {
