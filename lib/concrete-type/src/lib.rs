@@ -196,7 +196,11 @@ fn transform_path_arguments(args: &syn::PathArguments) -> proc_macro2::TokenStre
             quote! { < #(#transformed_args),* > }
         }
         syn::PathArguments::Parenthesized(paren) => {
-            let inputs: Vec<_> = paren.inputs.iter().map(transform_type).collect();
+            let inputs: Vec<_> = paren
+                .inputs
+                .iter()
+                .map(|input| transform_type(&input.ty))
+                .collect();
             let output = match &paren.output {
                 syn::ReturnType::Default => quote! {},
                 syn::ReturnType::Type(arrow, ty) => {
@@ -241,11 +245,7 @@ fn transform_type(ty: &syn::Type) -> proc_macro2::TokenStream {
             quote! { [ #elem ; #len ] }
         }
         syn::Type::Ptr(ptr) => {
-            let mutability = if ptr.mutability.is_some() {
-                quote! { mut }
-            } else {
-                quote! { const }
-            };
+            let mutability = &ptr.mutability;
             let elem = transform_type(&ptr.elem);
             quote! { * #mutability #elem }
         }
