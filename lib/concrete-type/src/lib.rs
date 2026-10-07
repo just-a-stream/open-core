@@ -116,144 +116,21 @@
 
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
+use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Attribute, DeriveInput, Expr, Fields, Lit, Meta, parse_macro_input};
+use syn::{
+    Attribute, Data, DeriveInput, Expr, Fields, GenericArgument, Ident, Lit, Meta, Path,
+    PathArguments, ReturnType, Type, Variant, parse_macro_input,
+};
 
-/// Helper function to extract concrete type path from an attribute
-fn extract_concrete_type_path(attrs: &[Attribute]) -> Option<syn::Path> {
-    for attr in attrs {
-        if attr.path().is_ident("concrete")
-            && let Meta::NameValue(meta) = &attr.meta
-            && let Expr::Lit(expr_lit) = &meta.value
-            && let Lit::Str(lit_str) = &expr_lit.lit
-        {
-            return syn::parse_str::<syn::Path>(&lit_str.value()).ok();
-        }
-    }
-    None
+struct Mapping<'a> {
+    variant: &'a Variant,
+    concrete: TokenStream2,
 }
 
-/// Transforms a path for use in generated macro code.
-///
-/// If the path starts with `crate::`, it transforms to `$crate::` for proper
-/// macro hygiene. This allows the generated macro to work correctly both within
-/// the defining crate and from external crates.
-///
-/// This function also recursively transforms any `crate::` paths inside generic
-/// arguments (e.g., `Wrapper<crate::inner::Type>` becomes `Wrapper<$crate::inner::Type>`).
-///
-/// Paths that don't start with `crate::` are returned as-is (after processing their generics).
-fn transform_path_for_macro(path: &syn::Path) -> proc_macro2::TokenStream {
-    let starts_with_crate = path
-        .segments
-        .first()
-        .map(|s| s.ident == "crate")
-        .unwrap_or(false);
-
-    // Process each segment, transforming generic arguments recursively
-    let transformed_segments: Vec<proc_macro2::TokenStream> = path
-        .segments
-        .iter()
-        .enumerate()
-        .filter_map(|(i, segment)| {
-            // Skip the leading `crate` segment if present
-            if starts_with_crate && i == 0 {
-                return None;
-            }
-
-            let ident = &segment.ident;
-            let args = transform_path_arguments(&segment.arguments);
-
-            Some(quote! { #ident #args })
-        })
-        .collect();
-
-    let leading_colon = &path.leading_colon;
-
-    if starts_with_crate && !transformed_segments.is_empty() {
-        quote! { $crate :: #(#transformed_segments)::* }
-    } else if transformed_segments.is_empty() {
-        // Path was just `crate` with no following segments - unusual but handle it
-        quote! { #path }
-    } else {
-        quote! { #leading_colon #(#transformed_segments)::* }
-    }
-}
-
-/// Transform path arguments (generic parameters), recursively handling nested `crate::` paths.
-fn transform_path_arguments(args: &syn::PathArguments) -> proc_macro2::TokenStream {
-    match args {
-        syn::PathArguments::None => quote! {},
-        syn::PathArguments::AngleBracketed(angle) => {
-            let transformed_args: Vec<proc_macro2::TokenStream> = angle
-                .args
-                .iter()
-                .map(|arg| match arg {
-                    syn::GenericArgument::Type(ty) => transform_type(ty),
-                    syn::GenericArgument::Lifetime(lt) => quote! { #lt },
-                    syn::GenericArgument::Const(expr) => quote! { #expr },
-                    other => quote! { #other },
-                })
-                .collect();
-            quote! { < #(#transformed_args),* > }
-        }
-        syn::PathArguments::Parenthesized(paren) => {
-            let inputs: Vec<_> = paren
-                .inputs
-                .iter()
-                .map(|input| transform_type(&input.ty))
-                .collect();
-            let output = match &paren.output {
-                syn::ReturnType::Default => quote! {},
-                syn::ReturnType::Type(arrow, ty) => {
-                    let transformed = transform_type(ty);
-                    quote! { #arrow #transformed }
-                }
-            };
-            quote! { ( #(#inputs),* ) #output }
-        }
-    }
-}
-
-/// Transform a type, recursively handling `crate::` paths within.
-fn transform_type(ty: &syn::Type) -> proc_macro2::TokenStream {
-    match ty {
-        syn::Type::Path(type_path) => {
-            let transformed = transform_path_for_macro(&type_path.path);
-            if let Some(qself) = &type_path.qself {
-                let qself_ty = transform_type(&qself.ty);
-                quote! { < #qself_ty > :: #transformed }
-            } else {
-                transformed
-            }
-        }
-        syn::Type::Reference(ref_type) => {
-            let lifetime = &ref_type.lifetime;
-            let mutability = &ref_type.mutability;
-            let elem = transform_type(&ref_type.elem);
-            quote! { & #lifetime #mutability #elem }
-        }
-        syn::Type::Tuple(tuple) => {
-            let elems: Vec<_> = tuple.elems.iter().map(transform_type).collect();
-            quote! { ( #(#elems),* ) }
-        }
-        syn::Type::Slice(slice) => {
-            let elem = transform_type(&slice.elem);
-            quote! { [ #elem ] }
-        }
-        syn::Type::Array(array) => {
-            let elem = transform_type(&array.elem);
-            let len = &array.len;
-            quote! { [ #elem ; #len ] }
-        }
-        syn::Type::Ptr(ptr) => {
-            let mutability = &ptr.mutability;
-            let elem = transform_type(&ptr.elem);
-            quote! { * #mutability #elem }
-        }
-        // For other types, just quote them as-is
-        other => quote! { #other },
-    }
+enum ConfigField {
+    Data,
+    Unit,
 }
 
 /// A derive macro that implements the mapping between enum variants and concrete types.
@@ -298,86 +175,11 @@ fn transform_type(ty: &syn::Type) -> proc_macro2::TokenStream {
 /// map them to concrete type implementations.
 #[proc_macro_derive(Concrete, attributes(concrete))]
 pub fn derive_concrete(input: TokenStream) -> TokenStream {
-    // Parse the input tokens into a syntax tree
     let input = parse_macro_input!(input as DeriveInput);
 
-    // Extract the name of the type
-    let type_name = &input.ident;
-
-    // Create a snake_case version of the type name for the macro_rules! name
-    let type_name_str = type_name.to_string();
-    let macro_name_str = type_name_str.to_case(Case::Snake);
-    let macro_name = syn::Ident::new(&macro_name_str, type_name.span());
-
-    // Handle enum case
-    let data_enum = match &input.data {
-        syn::Data::Enum(data_enum) => data_enum,
-        _ => {
-            return syn::Error::new_spanned(
-                type_name,
-                "Concrete can only be derived for enums or structs with type parameters",
-            )
-            .to_compile_error()
-            .into();
-        }
-    };
-
-    // Extract variant names and their concrete types
-    let mut variant_mappings = Vec::new();
-
-    for variant in &data_enum.variants {
-        let variant_name = &variant.ident;
-
-        // Extract the concrete type path from the variant's attributes
-        if let Some(concrete_type) = extract_concrete_type_path(&variant.attrs) {
-            variant_mappings.push((variant_name, concrete_type));
-        } else {
-            // Variant is missing the #[concrete = "..."] attribute
-            return syn::Error::new_spanned(
-                variant_name,
-                format!(
-                    "Enum variant `{}` is missing the #[concrete = \"...\"] attribute",
-                    variant_name
-                ),
-            )
-            .to_compile_error()
-            .into();
-        }
-    }
-
-    // Generate match arms for the macro_rules! version
-    let macro_match_arms = variant_mappings
-        .iter()
-        .map(|(variant_name, concrete_type)| {
-            let transformed_path = transform_path_for_macro(concrete_type);
-            quote! {
-                #type_name::#variant_name => {
-                    type $type_param = #transformed_path;
-                    $code_block
-                }
-            }
-        });
-
-    // Generate a top-level macro with the snake_case name of the enum
-    let macro_def = quote! {
-        #[macro_export]
-        macro_rules! #macro_name {
-            ($enum_instance:expr; $type_param:ident => $code_block:block) => {
-                match $enum_instance {
-                    #(#macro_match_arms),*
-                }
-            };
-        }
-    };
-
-    // Combine the macro definition and methods implementation
-    let expanded = quote! {
-        // Define the macro outside any module to make it directly accessible
-        #macro_def
-    };
-
-    // Return the generated implementation
-    TokenStream::from(expanded)
+    expand_concrete(&input)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }
 
 /// A derive macro that implements the mapping between enum variants with associated data and
@@ -442,154 +244,292 @@ pub fn derive_concrete(input: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro_derive(ConcreteConfig, attributes(concrete))]
 pub fn derive_concrete_config(input: TokenStream) -> TokenStream {
-    // Parse the input tokens into a syntax tree
     let input = parse_macro_input!(input as DeriveInput);
 
-    // Extract the name of the type
-    let type_name = &input.ident;
+    expand_concrete_config(&input)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
 
-    // Create a snake_case version of the type name for the macro_rules! name
-    let type_name_str = type_name.to_string();
-    // Strip "Config" suffix if present for cleaner macro names
-    let base_name = if type_name_str.ends_with("Config") {
-        &type_name_str[0..type_name_str.len() - 6]
-    } else {
-        &type_name_str
-    };
-    let macro_name_str = format!("{}_config", base_name.to_case(Case::Snake));
-    let macro_name = syn::Ident::new(&macro_name_str, type_name.span());
+fn expand_concrete(input: &DeriveInput) -> syn::Result<TokenStream2> {
+    let enum_name = &input.ident;
+    let mappings = parse_mappings(
+        input,
+        "Concrete can only be derived for enums or structs with type parameters",
+    )?;
 
-    // Ensure we're dealing with an enum
-    let data_enum = match &input.data {
-        syn::Data::Enum(data_enum) => data_enum,
-        _ => {
-            return syn::Error::new_spanned(
-                type_name,
-                "ConcreteConfig can only be derived for enums with data",
-            )
-            .to_compile_error()
-            .into();
+    let macro_name = Ident::new(
+        &enum_name.to_string().to_case(Case::Snake),
+        enum_name.span(),
+    );
+    let doc = format!(
+        "Dispatches on a `{enum_name}` value, running the block with the matched variant's \
+         concrete type bound to the type parameter."
+    );
+    let arms = mappings.iter().map(|mapping| {
+        let variant = &mapping.variant.ident;
+        let concrete = &mapping.concrete;
+        quote! {
+            #enum_name::#variant => {
+                type $type_param = #concrete;
+                $code_block
+            }
         }
-    };
+    });
 
-    // Extract variant names, their concrete types, and field types
-    // We now include a boolean flag to indicate if the variant has config data
-    let mut variant_mappings = Vec::new();
+    Ok(emit_dispatch_macro(
+        &macro_name,
+        &doc,
+        quote! { $type_param:ident },
+        arms,
+    ))
+}
 
-    for variant in &data_enum.variants {
-        let variant_name = &variant.ident;
+fn expand_concrete_config(input: &DeriveInput) -> syn::Result<TokenStream2> {
+    let enum_name = &input.ident;
+    let mappings = parse_mappings(
+        input,
+        "ConcreteConfig can only be derived for enums with data",
+    )?
+    .into_iter()
+    .map(|mapping| config_field(mapping.variant).map(|field| (mapping, field)))
+    .collect::<syn::Result<Vec<_>>>()?;
 
-        // Extract the concrete type path from the variant's attributes
-        if let Some(concrete_type) = extract_concrete_type_path(&variant.attrs) {
-            // Check variant field type - now accepting both unit variants and single-field variants
-            match &variant.fields {
-                Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                    // Variant with config data
-                    variant_mappings.push((variant_name, concrete_type, true));
+    let macro_name = config_macro_name(enum_name);
+    let doc = format!(
+        "Dispatches on a `{enum_name}` value, running the block with the matched variant's \
+         concrete type bound to the type parameter and its configuration bound to the config \
+         parameter."
+    );
+    let arms = mappings.iter().map(|(mapping, field)| {
+        let variant = &mapping.variant.ident;
+        let concrete = &mapping.concrete;
+        match field {
+            ConfigField::Data => quote! {
+                #enum_name::#variant(config) => {
+                    type $type_param = #concrete;
+                    let $config_param = config;
+                    $code_block
                 }
-                Fields::Unit => {
-                    // Unit variant (no config data)
-                    variant_mappings.push((variant_name, concrete_type, false));
+            },
+            ConfigField::Unit => quote! {
+                #enum_name::#variant => {
+                    type $type_param = #concrete;
+                    let $config_param = ();
+                    $code_block
                 }
-                _ => {
-                    return syn::Error::new_spanned(
-                        variant_name,
-                        format!(
-                            "Enum variant `{}` must either be a unit variant or have exactly one unnamed field for config",
-                            variant_name
-                        ),
-                    )
-                        .to_compile_error()
-                        .into();
+            },
+        }
+    });
+    let accessor_arms = mappings.iter().map(|(mapping, field)| {
+        let variant = &mapping.variant.ident;
+        match field {
+            ConfigField::Data => quote! { #enum_name::#variant(config) => config },
+            ConfigField::Unit => quote! { #enum_name::#variant => &() },
+        }
+    });
+
+    let dispatch_macro = emit_dispatch_macro(
+        &macro_name,
+        &doc,
+        quote! { ($type_param:ident, $config_param:ident) },
+        arms,
+    );
+
+    Ok(quote! {
+        #dispatch_macro
+
+        impl #enum_name {
+            /// Returns a reference to the configuration data associated with this enum variant
+            /// Unit variants return a reference to the unit type `()`
+            pub fn config(&self) -> &dyn ::core::any::Any {
+                match self {
+                    #(#accessor_arms),*
                 }
             }
-        } else {
-            // Variant is missing the #[concrete = "..."] attribute
-            return syn::Error::new_spanned(
-                variant_name,
-                format!(
-                    "Enum variant `{}` is missing the #[concrete = \"...\"] attribute",
-                    variant_name
-                ),
-            )
-            .to_compile_error()
-            .into();
         }
-    }
+    })
+}
 
-    // Generate match arms for the config method
-    let config_arms = variant_mappings
-        .iter()
-        .map(|(variant_name, _concrete_type, has_config)| {
-            if *has_config {
-                quote! {
-                    #type_name::#variant_name(config) => config
-                }
-            } else {
-                quote! {
-                    #type_name::#variant_name => &() // Return unit type for variants w/o config
-                }
-            }
-        });
-
-    // Generate match arms for the macro_rules! version
-    let macro_match_arms =
-        variant_mappings
-            .iter()
-            .map(|(variant_name, concrete_type, has_config)| {
-                let transformed_path = transform_path_for_macro(concrete_type);
-                if *has_config {
-                    quote! {
-                        #type_name::#variant_name(config) => {
-                            type $type_param = #transformed_path;
-                            let $config_param = config;
-                            $code_block
-                        }
-                    }
-                } else {
-                    quote! {
-                        #type_name::#variant_name => {
-                            type $type_param = #transformed_path;
-                            let $config_param = (); // Use unit type
-                            $code_block
-                        }
-                    }
-                }
-            });
-
-    // Generate a top-level macro with the snake_case name of the enum + "_config"
-    let macro_def = quote! {
+fn emit_dispatch_macro(
+    macro_name: &Ident,
+    doc: &str,
+    params: TokenStream2,
+    arms: impl Iterator<Item = TokenStream2>,
+) -> TokenStream2 {
+    quote! {
+        #[doc = #doc]
         #[macro_export]
         macro_rules! #macro_name {
-            ($enum_instance:expr; ($type_param:ident, $config_param:ident) => $code_block:block) => {
+            ($enum_instance:expr; #params => $code_block:block) => {
                 match $enum_instance {
-                    #(#macro_match_arms),*
+                    #(#arms),*
                 }
             };
         }
+    }
+}
+
+fn config_macro_name(enum_name: &Ident) -> Ident {
+    let name = enum_name.to_string();
+    let base = name.strip_suffix("Config").unwrap_or(&name);
+
+    Ident::new(
+        &format!("{}_config", base.to_case(Case::Snake)),
+        enum_name.span(),
+    )
+}
+
+fn parse_mappings<'a>(input: &'a DeriveInput, not_an_enum: &str) -> syn::Result<Vec<Mapping<'a>>> {
+    let Data::Enum(data) = &input.data else {
+        return Err(syn::Error::new_spanned(&input.ident, not_an_enum));
     };
 
-    // Generate the methods implementation
-    let methods_impl = quote! {
-        impl #type_name {
-            /// Returns a reference to the configuration data associated with this enum variant
-            /// Unit variants return a reference to the unit type `()`
-            pub fn config(&self) -> &dyn std::any::Any {
-                match self {
-                    #(#config_arms),*
+    data.variants
+        .iter()
+        .map(|variant| {
+            let path = extract_concrete_type_path(&variant.attrs).ok_or_else(|| {
+                syn::Error::new_spanned(
+                    &variant.ident,
+                    format!(
+                        "Enum variant `{}` is missing the #[concrete = \"...\"] attribute",
+                        variant.ident
+                    ),
+                )
+            })?;
+
+            Ok(Mapping {
+                variant,
+                concrete: transform_path_for_macro(&path),
+            })
+        })
+        .collect()
+}
+
+fn config_field(variant: &Variant) -> syn::Result<ConfigField> {
+    match &variant.fields {
+        Fields::Unnamed(fields) if fields.unnamed.len() == 1 => Ok(ConfigField::Data),
+        Fields::Unit => Ok(ConfigField::Unit),
+        _ => Err(syn::Error::new_spanned(
+            &variant.ident,
+            format!(
+                "Enum variant `{}` must either be a unit variant or have exactly one unnamed field for config",
+                variant.ident
+            ),
+        )),
+    }
+}
+
+/// Helper function to extract concrete type path from an attribute
+fn extract_concrete_type_path(attrs: &[Attribute]) -> Option<Path> {
+    attrs.iter().find_map(|attr| {
+        if attr.path().is_ident("concrete")
+            && let Meta::NameValue(meta) = &attr.meta
+            && let Expr::Lit(expr_lit) = &meta.value
+            && let Lit::Str(lit_str) = &expr_lit.lit
+        {
+            return syn::parse_str::<Path>(&lit_str.value()).ok();
+        }
+
+        None
+    })
+}
+
+/// Transforms a path for use in generated macro code.
+///
+/// If the path starts with `crate::`, it transforms to `$crate::` for proper
+/// macro hygiene. This allows the generated macro to work correctly both within
+/// the defining crate and from external crates.
+///
+/// This function also recursively transforms any `crate::` paths inside generic
+/// arguments (e.g., `Wrapper<crate::inner::Type>` becomes `Wrapper<$crate::inner::Type>`).
+///
+/// Paths that don't start with `crate::` are returned as-is (after processing their generics).
+fn transform_path_for_macro(path: &Path) -> TokenStream2 {
+    let starts_with_crate = path.segments.first().is_some_and(|s| s.ident == "crate");
+    let transformed_segments: Vec<TokenStream2> = path
+        .segments
+        .iter()
+        .skip(usize::from(starts_with_crate))
+        .map(|segment| {
+            let ident = &segment.ident;
+            let args = transform_path_arguments(&segment.arguments);
+            quote! { #ident #args }
+        })
+        .collect();
+    let leading_colon = &path.leading_colon;
+
+    if starts_with_crate && !transformed_segments.is_empty() {
+        quote! { $crate :: #(#transformed_segments)::* }
+    } else if transformed_segments.is_empty() {
+        quote! { #path }
+    } else {
+        quote! { #leading_colon #(#transformed_segments)::* }
+    }
+}
+
+/// Transform path arguments (generic parameters), recursively handling nested `crate::` paths.
+fn transform_path_arguments(args: &PathArguments) -> TokenStream2 {
+    match args {
+        PathArguments::None => quote! {},
+        PathArguments::AngleBracketed(angle) => {
+            let transformed_args = angle.args.iter().map(|arg| match arg {
+                GenericArgument::Type(ty) => transform_type(ty),
+                other => quote! { #other },
+            });
+            quote! { < #(#transformed_args),* > }
+        }
+        PathArguments::Parenthesized(paren) => {
+            let inputs = paren.inputs.iter().map(|input| transform_type(&input.ty));
+            let output = match &paren.output {
+                ReturnType::Default => quote! {},
+                ReturnType::Type(arrow, ty) => {
+                    let transformed = transform_type(ty);
+                    quote! { #arrow #transformed }
                 }
+            };
+            quote! { ( #(#inputs),* ) #output }
+        }
+    }
+}
+
+/// Transform a type, recursively handling `crate::` paths within.
+fn transform_type(ty: &Type) -> TokenStream2 {
+    match ty {
+        Type::Path(type_path) => {
+            let transformed = transform_path_for_macro(&type_path.path);
+            match &type_path.qself {
+                Some(qself) => {
+                    let qself_ty = transform_type(&qself.ty);
+                    quote! { < #qself_ty > :: #transformed }
+                }
+                None => transformed,
             }
         }
-    };
-
-    // Combine the macro definition and methods implementation
-    let expanded = quote! {
-        // Define the macro
-        #macro_def
-
-        // Implement methods on the enum
-        #methods_impl
-    };
-
-    TokenStream::from(expanded)
+        Type::Reference(ref_type) => {
+            let lifetime = &ref_type.lifetime;
+            let mutability = &ref_type.mutability;
+            let elem = transform_type(&ref_type.elem);
+            quote! { & #lifetime #mutability #elem }
+        }
+        Type::Tuple(tuple) => {
+            let elems = tuple.elems.iter().map(transform_type);
+            quote! { ( #(#elems),* ) }
+        }
+        Type::Slice(slice) => {
+            let elem = transform_type(&slice.elem);
+            quote! { [ #elem ] }
+        }
+        Type::Array(array) => {
+            let elem = transform_type(&array.elem);
+            let len = &array.len;
+            quote! { [ #elem ; #len ] }
+        }
+        Type::Ptr(ptr) => {
+            let mutability = &ptr.mutability;
+            let elem = transform_type(&ptr.elem);
+            quote! { * #mutability #elem }
+        }
+        other => quote! { #other },
+    }
 }
