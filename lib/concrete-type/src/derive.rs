@@ -4,7 +4,7 @@ use crate::{
 };
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
-use syn::{Data, DeriveInput, Expr, ExprLit, Fields, Lit, Meta, Path, Variant, Visibility};
+use syn::{Data, DeriveInput, Fields, Meta, Path, Variant, Visibility};
 
 pub fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     let concrete_enum = parse(input)?;
@@ -62,34 +62,22 @@ fn parse_concrete_path(variant: &Variant) -> syn::Result<Path> {
         return Err(syn::Error::new_spanned(
             &variant.ident,
             format!(
-                "Enum variant `{}` is missing the #[concrete = \"...\"] attribute",
+                "Enum variant `{}` is missing its #[concrete(path::to::Type)] attribute",
                 variant.ident
             ),
         ));
     };
-    let Meta::NameValue(meta) = &attr.meta else {
+    let Meta::List(_) = &attr.meta else {
         return Err(syn::Error::new_spanned(
             attr,
-            "expected #[concrete = \"path::to::Type\"]",
-        ));
-    };
-    let Expr::Lit(ExprLit {
-        lit: Lit::Str(path),
-        ..
-    }) = &meta.value
-    else {
-        return Err(syn::Error::new_spanned(
-            &meta.value,
-            "expected a string literal naming a type path, as in #[concrete = \"path::to::Type\"]",
+            "expected #[concrete(path::to::Type)], naming the type as a path rather than a string",
         ));
     };
 
-    path.parse().map_err(|err: syn::Error| {
+    attr.parse_args().map_err(|err: syn::Error| {
         syn::Error::new(
             err.span(),
-            format!(
-                "#[concrete = \"...\"] must name a type path such as \"crate::module::Type\": {err}"
-            ),
+            format!("#[concrete(..)] must name a type path such as `crate::module::Type`: {err}"),
         )
     })
 }

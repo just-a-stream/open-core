@@ -6,25 +6,25 @@ use concrete_type_rules::gen_match_concretes_macro;
 // Define our enums with Concrete derive for testing
 #[derive(Concrete, Clone, Copy)]
 enum Exchange {
-    #[concrete = "test_types::Binance"]
+    #[concrete(test_types::Binance)]
     Binance,
-    #[concrete = "test_types::Okx"]
+    #[concrete(test_types::Okx)]
     Okx,
 }
 
 #[derive(Concrete, Clone, Copy)]
 enum Strategy {
-    #[concrete = "test_types::StrategyA"]
+    #[concrete(test_types::StrategyA)]
     StrategyA,
-    #[concrete = "test_types::StrategyB"]
+    #[concrete(test_types::StrategyB)]
     StrategyB,
 }
 
 #[derive(Concrete, Clone, Copy)]
 enum TimeFrame {
-    #[concrete = "test_types::Minute"]
+    #[concrete(test_types::Minute)]
     Minute,
-    #[concrete = "test_types::Hour"]
+    #[concrete(test_types::Hour)]
     Hour,
 }
 

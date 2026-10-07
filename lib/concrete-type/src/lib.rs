@@ -15,7 +15,7 @@ mod model;
 
 /// Maps each variant of an enum to a concrete type.
 ///
-/// Every variant carries `#[concrete = "path::to::Type"]` and either no data or exactly one
+/// Every variant carries `#[concrete(path::to::Type)]` and either no data or exactly one
 /// unnamed field holding its configuration. The derive emits a matcher macro named after the
 /// enum in snake case (`exchange!` for `Exchange`) with two forms:
 ///
