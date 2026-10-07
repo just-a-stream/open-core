@@ -4,6 +4,7 @@ members = [
     "lib/component-map",
     "lib/concrete-type",
     "lib/concrete-type-rules",
+    "lib/socket-reconnect",
 ]
 
 [workspace.package]
@@ -34,7 +35,10 @@ concrete-type = { path = "lib/concrete-type", version = "0.3" }
 
 # Async
 futures = { version = "0.3", default-features = false }
+pin-project = { version = "1.1", default-features = false }
 tokio = { version = "1.53", default-features = false }
+tokio-stream = { version = "0.1", default-features = false }
+tokio-test = { version = "0.4", default-features = false }
 
 # Util
 derive_more = { version = "2.1", default-features = false }
@@ -45,3 +49,6 @@ paste = { version = "1.0", default-features = false }
 proc-macro2 = { version = "1.0", default-features = false }
 quote = { version = "1.0", default-features = false }
 syn = { version = "2.0", default-features = false }
+
+# Serialisation
+serde = { version = "1.0", default-features = false }

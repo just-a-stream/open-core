@@ -1,0 +1,33 @@
+[package]
+name = "socket-reconnect"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Reconnecting socket streams with pluggable backoff and connect and stream error handling"
+documentation = "https://docs.rs/socket-reconnect"
+readme = "README.md"
+keywords = ["socket", "reconnect", "stream", "backoff", "websocket"]
+categories = ["asynchronous", "network-programming"]
+
+[features]
+serde = ["dep:serde"]
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+# Async
+tokio = { workspace = true, features = ["macros", "rt", "sync"] }
+tokio-stream = { workspace = true }
+tokio-test = { workspace = true }
+
+[dependencies]
+# Async
+futures = { workspace = true, features = ["alloc"] }
+pin-project = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
+
+# Serialisation
+serde = { workspace = true, optional = true, features = ["derive"] }
