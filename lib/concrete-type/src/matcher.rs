@@ -38,10 +38,15 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         (quote! {}, quote! { pub(crate) })
     };
 
+    let variants = concrete_enum.variants.iter().map(variant_entry);
+
     quote! {
         #[doc(hidden)]
         #export
         macro_rules! #hidden_name {
+            (@concrete_type_variants [$($callback:tt)*] { $($state:tt)* }) => {
+                $($callback)*! { { $($state)* } [ #(#variants),* ] }
+            };
             ($value:expr; $concrete:ident => $body:block) => {
                 match $value {
                     #(#type_arms)*
@@ -92,6 +97,16 @@ fn hidden_name(enum_name: &Ident, macro_name: &Ident, type_arms: &[TokenStream])
     quote! { #(#type_arms)* }.to_string().hash(&mut hasher);
 
     format_ident!("__concrete_type_{}_{:016x}", macro_name, hasher.finish())
+}
+
+fn variant_entry(variant: &ConcreteVariant) -> TokenStream {
+    let ident = &variant.ident;
+    let concrete = to_macro_path(&variant.concrete);
+
+    match variant.shape {
+        Shape::Unit => quote! { #ident => #concrete },
+        Shape::Config => quote! { #ident(_) => #concrete },
+    }
 }
 
 fn type_arm(enum_path: &TokenStream, variant: &ConcreteVariant) -> TokenStream {
