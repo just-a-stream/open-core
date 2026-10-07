@@ -58,4 +58,13 @@ fn main() {
 A matcher runs where it is called, so import the enum there; if that is outside the enum's
 module, name this crate's types from `crate::`, as in `#[concrete(crate::venues::Binance)]`.
 
+## Migrating from 0.3
+
+| 0.3                                              | Now                                                   |
+|--------------------------------------------------|-------------------------------------------------------|
+| `#[concrete = "path::Type"]`                     | `#[concrete(path::Type)]`                             |
+| `#[derive(ConcreteConfig)]`, `config()`          | `#[derive(Concrete)]`, `exchange!(v; (E, cfg) => ..)` |
+| `gen_match_concretes_macro!(A, B)`, `match_a_b!` | `concrete!(match (a, b) { (X: A, Y: B) => .. })`      |
+| `dep::exchange!` for a nested `pub` enum         | `dep::module::exchange!`                              |
+
 Licensed under MIT OR Apache-2.0.
