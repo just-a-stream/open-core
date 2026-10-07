@@ -1,0 +1,26 @@
+[package]
+name = "component-map"
+version = "0.4.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/component-map"
+readme = "README.md"
+description = "Generic component manager with sync/async and fallible/infallible initialisation"
+keywords = ["component", "manager", "async", "initialisation"]
+categories = ["rust-patterns", "data-structures", "asynchronous"]
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+futures = { workspace = true, features = ["executor"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+
+[dependencies]
+# Async
+futures = { workspace = true, features = ["alloc"] }
+
+# Util
+derive_more = { workspace = true, features = ["constructor"] }
