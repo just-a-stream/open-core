@@ -168,13 +168,15 @@ fn transform_path_for_macro(path: &syn::Path) -> proc_macro2::TokenStream {
         })
         .collect();
 
+    let leading_colon = &path.leading_colon;
+
     if starts_with_crate && !transformed_segments.is_empty() {
         quote! { $crate :: #(#transformed_segments)::* }
     } else if transformed_segments.is_empty() {
         // Path was just `crate` with no following segments - unusual but handle it
         quote! { #path }
     } else {
-        quote! { #(#transformed_segments)::* }
+        quote! { #leading_colon #(#transformed_segments)::* }
     }
 }
 
