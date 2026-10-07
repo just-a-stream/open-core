@@ -5,6 +5,7 @@
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
 
+mod bound;
 mod crate_path;
 mod derive;
 mod matcher;
@@ -20,6 +21,9 @@ mod model;
 ///   variant's concrete type;
 /// - `exchange!(value; (T, config) => body)` also binds the variant's configuration to
 ///   `config`, `()` for a unit variant.
+///
+/// `#[concrete(bound(Trait + Send + 'static))]` on the enum asserts that every concrete type
+/// satisfies the bound list, failing at the offending variant.
 ///
 /// A path starting with `crate::` is rewritten to `$crate::`, so the macro resolves it from any
 /// crate; any other path resolves where the macro is called.

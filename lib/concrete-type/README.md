@@ -92,6 +92,34 @@ fn main() {
 }
 ```
 
+## Bounds
+
+`#[concrete(bound(..))]` on the enum takes a where-clause bound list that every concrete type
+must satisfy. A type that misses one fails to compile with E0277 at its own variant, not inside
+the first body that needs the trait:
+
+```rust,compile_fail,E0277
+use concrete_type::Concrete;
+
+trait ExchangeApi {}
+
+struct Binance;
+struct Okx;
+
+impl ExchangeApi for Binance {}
+
+#[derive(Concrete)]
+#[concrete(bound(ExchangeApi + Send + 'static))]
+enum Exchange {
+    #[concrete = "Binance"]
+    Binance,
+    #[concrete = "Okx"]
+    Okx,
+}
+
+fn main() {}
+```
+
 ## Path resolution
 
 The matcher macro lives beside its enum: an enum at `crate::config::Exchange` gets

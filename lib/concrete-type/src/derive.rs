@@ -1,15 +1,21 @@
 use crate::{
-    matcher,
+    bound, matcher,
     model::{ConcreteEnum, ConcreteVariant, Shape},
 };
 use proc_macro2::TokenStream;
-use quote::ToTokens;
+use quote::{ToTokens, quote};
 use syn::{Data, DeriveInput, Expr, ExprLit, Fields, Lit, Meta, Path, Variant, Visibility};
 
 pub fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     let concrete_enum = parse(input)?;
 
-    Ok(matcher::emit(&concrete_enum))
+    let matcher = matcher::emit(&concrete_enum);
+    let bound = bound::emit(&concrete_enum);
+
+    Ok(quote! {
+        #matcher
+        #bound
+    })
 }
 
 fn parse(input: &DeriveInput) -> syn::Result<ConcreteEnum> {
@@ -30,6 +36,7 @@ fn parse(input: &DeriveInput) -> syn::Result<ConcreteEnum> {
         name: input.ident.clone(),
         path: input.ident.to_token_stream(),
         exported: matches!(input.vis, Visibility::Public(_)),
+        bound: bound::parse(&input.attrs)?,
         variants,
     })
 }
