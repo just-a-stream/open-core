@@ -14,6 +14,9 @@ categories = ["rust-patterns", "development-tools::procedural-macro-helpers", "n
 [lib]
 proc-macro = true
 
+[lints]
+workspace = true
+
 [dependencies]
 # Macros
 convert_case = { workspace = true }

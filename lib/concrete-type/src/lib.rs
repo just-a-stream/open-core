@@ -114,8 +114,6 @@
 //!
 //! See the crate documentation and examples for more details.
 
-extern crate proc_macro;
-
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use quote::quote;

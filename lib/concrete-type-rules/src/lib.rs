@@ -69,6 +69,11 @@
 //! gen_match_concretes_macro!(Exchange, Strategy, Market, Asset, TimeFrame);
 //! ```
 
+#[cfg(test)]
+use concrete_type as _;
+#[doc(hidden)]
+pub use paste;
+
 /// A macro that generates a combined matcher macro for multiple concrete enums.
 ///
 /// This macro creates a new macro that allows you to match multiple enum instances
@@ -131,7 +136,7 @@
 macro_rules! gen_match_concretes_macro {
     // For 2 enum types
     ($first_enum:ident, $second_enum:ident) => {
-        paste::paste! {
+        $crate::paste::paste! {
             #[macro_export]
             macro_rules! [<match_ $first_enum:snake _ $second_enum:snake>] {
                 ($first_var:expr, $second_var:expr; $first_type:ident, $second_type:ident => $code_block:block) => {
@@ -147,7 +152,7 @@ macro_rules! gen_match_concretes_macro {
 
     // For 3 enum types
     ($first_enum:ident, $second_enum:ident, $third_enum:ident) => {
-        paste::paste! {
+        $crate::paste::paste! {
             #[macro_export]
             macro_rules! [<match_ $first_enum:snake _ $second_enum:snake _ $third_enum:snake>] {
                 ($first_var:expr, $second_var:expr, $third_var:expr; $first_type:ident, $second_type:ident, $third_type:ident => $code_block:block) => {
@@ -165,7 +170,7 @@ macro_rules! gen_match_concretes_macro {
 
     // For 4 enum types
     ($first_enum:ident, $second_enum:ident, $third_enum:ident, $fourth_enum:ident) => {
-        paste::paste! {
+        $crate::paste::paste! {
             #[macro_export]
             macro_rules! [<match_ $first_enum:snake _ $second_enum:snake _ $third_enum:snake _ $fourth_enum:snake>] {
                 ($first_var:expr, $second_var:expr, $third_var:expr, $fourth_var:expr;
@@ -186,7 +191,7 @@ macro_rules! gen_match_concretes_macro {
 
     // For 5 enum types
     ($first_enum:ident, $second_enum:ident, $third_enum:ident, $fourth_enum:ident, $fifth_enum:ident) => {
-        paste::paste! {
+        $crate::paste::paste! {
             #[macro_export]
             macro_rules! [<match_ $first_enum:snake _ $second_enum:snake _ $third_enum:snake _ $fourth_enum:snake _ $fifth_enum:snake>] {
                 ($first_var:expr, $second_var:expr, $third_var:expr, $fourth_var:expr, $fifth_var:expr;
