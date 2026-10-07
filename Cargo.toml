@@ -3,7 +3,6 @@ resolver = "3"
 members = [
     "lib/component-map",
     "lib/concrete-type",
-    "lib/concrete-type-rules",
     "lib/socket-reconnect",
 ]
 
@@ -45,7 +44,6 @@ derive_more = { version = "2.1", default-features = false }
 
 # Macros
 convert_case = { version = "0.12", default-features = false }
-paste = { version = "1.0", default-features = false }
 proc-macro2 = { version = "1.0", default-features = false }
 quote = { version = "1.0", default-features = false }
 syn = { version = "3.0", default-features = false }
