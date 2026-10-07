@@ -44,7 +44,7 @@ tokio-test = { version = "0.4", default-features = false }
 derive_more = { version = "2.1", default-features = false }
 
 # Macros
-convert_case = { version = "0.10", default-features = false }
+convert_case = { version = "0.12", default-features = false }
 paste = { version = "1.0", default-features = false }
 proc-macro2 = { version = "1.0", default-features = false }
 quote = { version = "1.0", default-features = false }
