@@ -1,5 +1,8 @@
 [workspace]
 resolver = "3"
+exclude = [
+    "lib/engine-loop",
+]
 members = [
     "lib/component-map",
     "lib/concrete-type",

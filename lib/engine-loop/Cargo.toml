@@ -1,0 +1,9 @@
+[package]
+name = "engine-loop"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/just-a-stream/open-core"
+description = "Sans-io, deterministic event-loop contracts: process events, react to them and commit them before acting"
+readme = "README.md"
+publish = false
