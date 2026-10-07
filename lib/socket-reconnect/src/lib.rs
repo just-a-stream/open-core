@@ -55,7 +55,7 @@ where
     where
         Self: Stream<Item = Socket> + Sized,
         Socket: Stream<Item = Result<StOk, StErr>>,
-        ErrHandler: StreamErrorHandler<StErr> + Clone + 'static,
+        ErrHandler: StreamErrorHandler<StErr> + Clone,
     {
         use futures::StreamExt;
         self.map(move |socket| OnStreamErr::new(socket, on_err.clone()))
@@ -70,7 +70,7 @@ where
     where
         Self: Stream<Item = Socket> + Sized,
         Socket: Stream<Item = Result<StOk, StErr>>,
-        ErrHandler: StreamErrorHandler<StErr> + Clone + 'static,
+        ErrHandler: StreamErrorHandler<StErr> + Clone,
     {
         use futures::StreamExt;
         self.map(move |socket| OnStreamErrFilter::new(socket, on_err.clone()))
