@@ -19,7 +19,7 @@ workspace = true
 
 [dev-dependencies]
 # Async
-tokio = { workspace = true, features = ["macros", "rt", "sync"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "test-util"] }
 tokio-stream = { workspace = true }
 tokio-test = { workspace = true }
 

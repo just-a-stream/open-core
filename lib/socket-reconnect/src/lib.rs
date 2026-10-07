@@ -5,6 +5,7 @@ use crate::{
     on_connect_err::{ConnectError, ConnectErrorHandler, ConnectErrorKind, OnConnectErr},
     on_stream_err::{OnStreamErr, StreamErrorHandler},
     on_stream_err_filter::OnStreamErrFilter,
+    on_stream_timeout::{OnStreamTimeout, StreamTimeoutHandler},
     update::SocketUpdate,
 };
 use futures::{Sink, Stream, stream::SplitSink};
@@ -20,6 +21,9 @@ pub mod on_stream_err;
 
 /// Stream error handling with filtering.
 pub mod on_stream_err_filter;
+
+/// Stream timeout handling.
+pub mod on_stream_timeout;
 
 /// Defines the socket lifecycle [`SocketUpdate`] event.
 pub mod update;
@@ -70,6 +74,24 @@ where
     {
         use futures::StreamExt;
         self.map(move |socket| OnStreamErrFilter::new(socket, on_err.clone()))
+    }
+
+    /// Applies a "consecutive item timeout" to the inner Stream.
+    ///
+    /// Upon timeout, the inner Stream ends after running the provided [`StreamTimeoutHandler`],
+    /// triggering a reconnection.
+    fn on_stream_timeout<Socket, TimeoutHandler>(
+        self,
+        timeout_next_item: std::time::Duration,
+        on_timeout: TimeoutHandler,
+    ) -> impl Stream<Item = OnStreamTimeout<Socket, TimeoutHandler>>
+    where
+        Self: Stream<Item = Socket> + Sized,
+        Socket: Stream,
+        TimeoutHandler: StreamTimeoutHandler + Clone,
+    {
+        use futures::StreamExt;
+        self.map(move |socket| OnStreamTimeout::new(socket, timeout_next_item, on_timeout.clone()))
     }
 
     /// Wrap stream items with [`SocketUpdate`] lifecycle events.
