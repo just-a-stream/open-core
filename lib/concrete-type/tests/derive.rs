@@ -61,6 +61,7 @@ mod config {
     use concrete_type::Concrete;
 
     #[derive(Concrete)]
+    #[concrete(bound(crate::Build + Send + 'static))]
     pub enum ExchangeConfig {
         #[concrete = "crate::exchanges::Binance"]
         Binance(exchanges::BinanceConfig),
