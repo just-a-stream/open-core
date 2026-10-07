@@ -1,3 +1,5 @@
+#![allow(unused_crate_dependencies)]
+
 use crate::{
     exchanges::{Binance, Okx},
     strategies::{StrategyA, StrategyB},
@@ -16,11 +18,15 @@ enum Exchange {
 }
 
 mod exchanges {
+    #[derive(Debug)]
     pub struct Binance;
 
+    #[derive(Debug)]
     pub struct Okx;
 
+    #[derive(Debug)]
     pub struct KrakenSpotServer;
+    #[derive(Debug)]
     pub struct Kraken<Server> {
         pub _phantom: std::marker::PhantomData<Server>,
     }
@@ -36,13 +42,30 @@ enum Strategy {
 }
 
 pub mod strategies {
+    #[derive(Debug)]
     pub struct StrategyA;
 
+    #[derive(Debug)]
     pub struct StrategyB;
 }
 
+#[derive(Debug)]
 pub struct TradingSystem<Exchange, Strategy> {
     phantom: PhantomData<(Exchange, Strategy)>,
+}
+
+impl<Exchange, Strategy> Default for TradingSystem<Exchange, Strategy> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<Exchange, Strategy> TradingSystem<Exchange, Strategy> {
+    pub const fn new() -> Self {
+        Self {
+            phantom: PhantomData,
+        }
+    }
 }
 
 fn main() {
@@ -78,49 +101,25 @@ fn main() {
 }
 
 impl TradingSystem<Binance, StrategyA> {
-    pub fn new() -> Self {
-        Self {
-            phantom: Default::default(),
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         "binance_strategy_a"
     }
 }
 
 impl TradingSystem<Binance, StrategyB> {
-    pub fn new() -> Self {
-        Self {
-            phantom: Default::default(),
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         "binance_strategy_b"
     }
 }
 
 impl TradingSystem<Okx, StrategyA> {
-    pub fn new() -> Self {
-        Self {
-            phantom: Default::default(),
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         "okx_strategy_a"
     }
 }
 
 impl TradingSystem<Okx, StrategyB> {
-    pub fn new() -> Self {
-        Self {
-            phantom: Default::default(),
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         "okx_strategy_b"
     }
 }
@@ -128,25 +127,13 @@ impl TradingSystem<Okx, StrategyB> {
 use crate::exchanges::{Kraken, KrakenSpotServer};
 
 impl TradingSystem<Kraken<KrakenSpotServer>, StrategyA> {
-    pub fn new() -> Self {
-        Self {
-            phantom: Default::default(),
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         "kraken_strategy_a"
     }
 }
 
 impl TradingSystem<Kraken<KrakenSpotServer>, StrategyB> {
-    pub fn new() -> Self {
-        Self {
-            phantom: Default::default(),
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         "kraken_strategy_b"
     }
 }

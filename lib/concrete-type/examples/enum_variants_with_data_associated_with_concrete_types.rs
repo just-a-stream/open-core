@@ -1,3 +1,5 @@
+#![allow(unused_crate_dependencies)]
+
 use crate::exchanges::ExchangeApi;
 use concrete_type::ConcreteConfig;
 

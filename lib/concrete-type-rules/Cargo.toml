@@ -11,9 +11,13 @@ readme = "README.md"
 keywords = ["enum", "type-level", "static-dispatch"]
 categories = ["rust-patterns"]
 
-[dependencies]
+[lints]
+workspace = true
+
+[dev-dependencies]
 # Workspace crates
 concrete-type = { workspace = true }
 
+[dependencies]
 # Macros
 paste = { workspace = true }
