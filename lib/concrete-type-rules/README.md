@@ -55,13 +55,13 @@ use concrete_type_rules::gen_match_concretes_macro;
 
 #[derive(Concrete)]
 enum Exchange {
-    #[concrete = "exchanges::Binance"]
+    #[concrete(exchanges::Binance)]
     Binance,
 }
 
 #[derive(Concrete)]
 enum Strategy {
-    #[concrete = "strategies::StrategyA"]
+    #[concrete(strategies::StrategyA)]
     StrategyA,
 }
 

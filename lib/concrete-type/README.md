@@ -14,7 +14,7 @@ concrete-type = "0.3"
 
 ## `#[derive(Concrete)]`
 
-Each variant names its concrete type with `#[concrete = "path::to::Type"]` and carries either
+Each variant names its concrete type with `#[concrete(path::to::Type)]` and carries either
 no data or exactly one unnamed field holding its configuration. The derive emits a matcher
 macro named after the enum in snake case (`exchange!` for `Exchange`) with two forms:
 
@@ -71,9 +71,9 @@ mod exchanges {
 
 #[derive(Concrete)]
 enum Exchange {
-    #[concrete = "crate::exchanges::Binance"]
+    #[concrete(crate::exchanges::Binance)]
     Binance(exchanges::BinanceConfig),
-    #[concrete = "crate::exchanges::Okx"]
+    #[concrete(crate::exchanges::Okx)]
     Okx,
 }
 
@@ -139,9 +139,9 @@ impl ExchangeApi for Binance {}
 #[derive(Concrete)]
 #[concrete(bound(ExchangeApi + Send + 'static))]
 enum Exchange {
-    #[concrete = "Binance"]
+    #[concrete(Binance)]
     Binance,
-    #[concrete = "Okx"]
+    #[concrete(Okx)]
     Okx,
 }
 

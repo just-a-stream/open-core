@@ -9,11 +9,11 @@ use std::marker::PhantomData;
 
 #[derive(Concrete, Clone, Copy)]
 enum Exchange {
-    #[concrete = "crate::exchanges::Binance"]
+    #[concrete(crate::exchanges::Binance)]
     Binance,
-    #[concrete = "crate::exchanges::Okx"]
+    #[concrete(crate::exchanges::Okx)]
     Okx,
-    #[concrete = "crate::exchanges::Kraken<crate::exchanges::KrakenSpotServer>"]
+    #[concrete(crate::exchanges::Kraken<crate::exchanges::KrakenSpotServer>)]
     Kraken,
 }
 
@@ -34,10 +34,10 @@ mod exchanges {
 
 #[derive(Concrete)]
 enum Strategy {
-    #[concrete = "crate::strategies::StrategyA"]
+    #[concrete(crate::strategies::StrategyA)]
     StrategyA,
 
-    #[concrete = "crate::strategies::StrategyB"]
+    #[concrete(crate::strategies::StrategyB)]
     StrategyB,
 }
 

@@ -5,11 +5,11 @@ use concrete_type::Concrete;
 
 #[derive(Concrete)]
 enum ExchangeConfig {
-    #[concrete = "crate::exchanges::Binance"]
+    #[concrete(crate::exchanges::Binance)]
     Binance(exchanges::BinanceConfig),
-    #[concrete = "crate::exchanges::Okx"]
+    #[concrete(crate::exchanges::Okx)]
     Okx,
-    #[concrete = "crate::exchanges::Bitmart<crate::exchanges::BitmartSpotServer>"]
+    #[concrete(crate::exchanges::Bitmart<crate::exchanges::BitmartSpotServer>)]
     Bitmart(exchanges::BitmartConfig),
 }
 

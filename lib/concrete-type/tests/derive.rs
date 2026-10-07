@@ -48,11 +48,11 @@ impl Build for exchanges::Okx {
 
 #[derive(Clone, Copy, Concrete)]
 enum Width {
-    #[concrete = "crate::exchanges::Binance"]
+    #[concrete(crate::exchanges::Binance)]
     Unit,
-    #[concrete = "::core::primitive::u8"]
+    #[concrete(::core::primitive::u8)]
     Byte,
-    #[concrete = "core::primitive::u8"]
+    #[concrete(core::primitive::u8)]
     Shadowed,
 }
 
@@ -63,9 +63,9 @@ mod config {
     #[derive(Concrete)]
     #[concrete(bound(crate::Build + Send + 'static))]
     pub enum ExchangeConfig {
-        #[concrete = "crate::exchanges::Binance"]
+        #[concrete(crate::exchanges::Binance)]
         Binance(exchanges::BinanceConfig),
-        #[concrete = "crate::exchanges::Okx"]
+        #[concrete(crate::exchanges::Okx)]
         Okx,
     }
 }
