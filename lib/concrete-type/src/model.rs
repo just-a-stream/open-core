@@ -4,6 +4,7 @@ use syn::Path;
 pub struct ConcreteEnum {
     pub name: Ident,
     pub path: TokenStream,
+    pub foreign: bool,
     pub exported: bool,
     pub bound: Option<TokenStream>,
     pub variants: Vec<ConcreteVariant>,

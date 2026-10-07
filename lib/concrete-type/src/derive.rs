@@ -35,6 +35,7 @@ fn parse(input: &DeriveInput) -> syn::Result<ConcreteEnum> {
     Ok(ConcreteEnum {
         name: input.ident.clone(),
         path: input.ident.to_token_stream(),
+        foreign: false,
         exported: matches!(input.vis, Visibility::Public(_)),
         bound: bound::parse(&input.attrs)?,
         variants,

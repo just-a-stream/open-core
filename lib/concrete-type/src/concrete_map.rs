@@ -98,6 +98,7 @@ fn parse_enum(input: ParseStream<'_>) -> syn::Result<ConcreteEnum> {
     Ok(ConcreteEnum {
         name,
         path: to_macro_path(&path),
+        foreign: true,
         exported: matches!(vis, Visibility::Public(_)),
         bound: bound::parse(&attrs)?,
         variants,
