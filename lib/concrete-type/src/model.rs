@@ -1,0 +1,19 @@
+use proc_macro2::{Ident, TokenStream};
+use syn::Path;
+
+pub struct ConcreteEnum {
+    pub name: Ident,
+    pub path: TokenStream,
+    pub variants: Vec<ConcreteVariant>,
+}
+
+pub struct ConcreteVariant {
+    pub ident: Ident,
+    pub shape: Shape,
+    pub concrete: Path,
+}
+
+pub enum Shape {
+    Unit,
+    Config,
+}
