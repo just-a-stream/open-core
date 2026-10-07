@@ -23,6 +23,10 @@ mod model;
 ///
 /// A path starting with `crate::` is rewritten to `$crate::`, so the macro resolves it from any
 /// crate; any other path resolves where the macro is called.
+///
+/// For macros that build on the matcher, `exchange!(@concrete_type_variants [callback] { state })`
+/// expands to `callback! { { state } [ Variant => Type, Data(_) => Type ] }`, listing every
+/// variant with its concrete type, a data variant marked `(_)`.
 #[proc_macro_derive(Concrete, attributes(concrete))]
 pub fn derive_concrete(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
