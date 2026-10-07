@@ -119,7 +119,7 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{
-    Attribute, Data, DeriveInput, Expr, Fields, GenericArgument, Ident, Lit, Meta, Path,
+    Data, DeriveInput, Expr, ExprLit, Fields, GenericArgument, Ident, Lit, Meta, Path,
     PathArguments, ReturnType, Type, Variant, parse_macro_input,
 };
 
@@ -253,10 +253,10 @@ pub fn derive_concrete_config(input: TokenStream) -> TokenStream {
 
 fn expand_concrete(input: &DeriveInput) -> syn::Result<TokenStream2> {
     let enum_name = &input.ident;
-    let mappings = parse_mappings(
-        input,
-        "Concrete can only be derived for enums or structs with type parameters",
-    )?;
+    let mappings = parse_mappings(input, "Concrete")?;
+    mappings
+        .iter()
+        .try_for_each(|mapping| require_unit_variant(mapping.variant))?;
 
     let macro_name = Ident::new(
         &enum_name.to_string().to_case(Case::Snake),
@@ -287,13 +287,10 @@ fn expand_concrete(input: &DeriveInput) -> syn::Result<TokenStream2> {
 
 fn expand_concrete_config(input: &DeriveInput) -> syn::Result<TokenStream2> {
     let enum_name = &input.ident;
-    let mappings = parse_mappings(
-        input,
-        "ConcreteConfig can only be derived for enums with data",
-    )?
-    .into_iter()
-    .map(|mapping| config_field(mapping.variant).map(|field| (mapping, field)))
-    .collect::<syn::Result<Vec<_>>>()?;
+    let mappings = parse_mappings(input, "ConcreteConfig")?
+        .into_iter()
+        .map(|mapping| config_field(mapping.variant).map(|field| (mapping, field)))
+        .collect::<syn::Result<Vec<_>>>()?;
 
     let macro_name = config_macro_name(enum_name);
     let doc = format!(
@@ -380,23 +377,18 @@ fn config_macro_name(enum_name: &Ident) -> Ident {
     )
 }
 
-fn parse_mappings<'a>(input: &'a DeriveInput, not_an_enum: &str) -> syn::Result<Vec<Mapping<'a>>> {
+fn parse_mappings<'a>(input: &'a DeriveInput, derive: &str) -> syn::Result<Vec<Mapping<'a>>> {
     let Data::Enum(data) = &input.data else {
-        return Err(syn::Error::new_spanned(&input.ident, not_an_enum));
+        return Err(syn::Error::new_spanned(
+            &input.ident,
+            format!("{derive} can only be derived for enums"),
+        ));
     };
 
     data.variants
         .iter()
         .map(|variant| {
-            let path = extract_concrete_type_path(&variant.attrs).ok_or_else(|| {
-                syn::Error::new_spanned(
-                    &variant.ident,
-                    format!(
-                        "Enum variant `{}` is missing the #[concrete = \"...\"] attribute",
-                        variant.ident
-                    ),
-                )
-            })?;
+            let path = parse_concrete_path(variant)?;
 
             Ok(Mapping {
                 variant,
@@ -404,6 +396,20 @@ fn parse_mappings<'a>(input: &'a DeriveInput, not_an_enum: &str) -> syn::Result<
             })
         })
         .collect()
+}
+
+fn require_unit_variant(variant: &Variant) -> syn::Result<()> {
+    if matches!(variant.fields, Fields::Unit) {
+        return Ok(());
+    }
+
+    Err(syn::Error::new_spanned(
+        &variant.fields,
+        format!(
+            "Enum variant `{}` carries data, which Concrete cannot bind; derive ConcreteConfig instead",
+            variant.ident
+        ),
+    ))
 }
 
 fn config_field(variant: &Variant) -> syn::Result<ConfigField> {
@@ -420,18 +426,45 @@ fn config_field(variant: &Variant) -> syn::Result<ConfigField> {
     }
 }
 
-/// Helper function to extract concrete type path from an attribute
-fn extract_concrete_type_path(attrs: &[Attribute]) -> Option<Path> {
-    attrs.iter().find_map(|attr| {
-        if attr.path().is_ident("concrete")
-            && let Meta::NameValue(meta) = &attr.meta
-            && let Expr::Lit(expr_lit) = &meta.value
-            && let Lit::Str(lit_str) = &expr_lit.lit
-        {
-            return syn::parse_str::<Path>(&lit_str.value()).ok();
-        }
+/// Helper function to extract the concrete type path from a variant's `#[concrete = "..."]` attribute
+fn parse_concrete_path(variant: &Variant) -> syn::Result<Path> {
+    let Some(attr) = variant
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("concrete"))
+    else {
+        return Err(syn::Error::new_spanned(
+            &variant.ident,
+            format!(
+                "Enum variant `{}` is missing the #[concrete = \"...\"] attribute",
+                variant.ident
+            ),
+        ));
+    };
+    let Meta::NameValue(meta) = &attr.meta else {
+        return Err(syn::Error::new_spanned(
+            attr,
+            "expected #[concrete = \"path::to::Type\"]",
+        ));
+    };
+    let Expr::Lit(ExprLit {
+        lit: Lit::Str(path),
+        ..
+    }) = &meta.value
+    else {
+        return Err(syn::Error::new_spanned(
+            &meta.value,
+            "expected a string literal naming a type path, as in #[concrete = \"path::to::Type\"]",
+        ));
+    };
 
-        None
+    path.parse().map_err(|err: syn::Error| {
+        syn::Error::new(
+            err.span(),
+            format!(
+                "#[concrete = \"...\"] must name a type path such as \"crate::module::Type\": {err}"
+            ),
+        )
     })
 }
 
