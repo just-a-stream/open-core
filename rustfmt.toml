@@ -1,0 +1,5 @@
+edition = "2024"
+group_imports = "One"
+imports_granularity = "crate"
+merge_derives = false
+attr_fn_like_width = 100
