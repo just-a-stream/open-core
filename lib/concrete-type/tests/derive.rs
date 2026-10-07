@@ -1,6 +1,6 @@
 #![allow(unused_crate_dependencies)]
 
-use concrete_type::{Concrete, ConcreteConfig};
+use concrete_type::Concrete;
 use std::mem::size_of;
 
 mod core {
@@ -55,7 +55,7 @@ enum Width {
     Shadowed,
 }
 
-#[derive(ConcreteConfig)]
+#[derive(Concrete)]
 enum ExchangeConfig {
     #[concrete = "crate::exchanges::Binance"]
     Binance(exchanges::BinanceConfig),
@@ -79,7 +79,7 @@ fn concrete_maps_each_variant_to_its_type_path() {
 }
 
 #[test]
-fn concrete_config_binds_each_variant_to_its_type_and_config() {
+fn concrete_binds_each_variant_to_its_type_and_config() {
     let binance = ExchangeConfig::Binance(exchanges::BinanceConfig { api_key: "key" });
     let unkeyed = ExchangeConfig::Binance(exchanges::BinanceConfig { api_key: "" });
 

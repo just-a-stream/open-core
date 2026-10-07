@@ -1,9 +1,9 @@
 #![allow(unused_crate_dependencies)]
 
 use crate::exchanges::ExchangeApi;
-use concrete_type::ConcreteConfig;
+use concrete_type::Concrete;
 
-#[derive(ConcreteConfig)]
+#[derive(Concrete)]
 enum ExchangeConfig {
     #[concrete = "crate::exchanges::Binance"]
     Binance(exchanges::BinanceConfig),
