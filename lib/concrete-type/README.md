@@ -92,6 +92,34 @@ fn main() {
 }
 ```
 
+## `concrete_map!`
+
+An enum defined in another crate cannot carry the derive. `concrete_map!` emits the same
+matcher for it beside the invocation: `Data(_)` marks a variant carrying one field of
+configuration, and a final `_ => Type` maps every variant not listed, which also covers a
+`#[non_exhaustive]` enum. A leading `pub` exports the macro to other crates, and
+`#[concrete(bound(..))]` works as on the derive:
+
+```rust
+mod widths {
+    pub struct Narrow;
+    pub struct Wide;
+}
+
+concrete_type::concrete_map! {
+    core::cmp::Ordering => {
+        Less => crate::widths::Narrow,
+        _ => crate::widths::Wide,
+    }
+}
+
+fn main() {
+    let name = ordering!(core::cmp::Ordering::Equal; T => std::any::type_name::<T>());
+
+    assert!(name.ends_with("Wide"));
+}
+```
+
 ## Bounds
 
 `#[concrete(bound(..))]` on the enum takes a where-clause bound list that every concrete type

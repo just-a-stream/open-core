@@ -6,7 +6,7 @@ use convert_case::{Case, Casing};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use std::hash::{DefaultHasher, Hash, Hasher};
-use syn::ext::IdentExt;
+use syn::{Path, ext::IdentExt};
 
 pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
     let macro_name = match macro_name(&concrete_enum.name) {
@@ -24,11 +24,13 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         .variants
         .iter()
         .map(|variant| type_arm(&concrete_enum.path, variant))
+        .chain(concrete_enum.remainder.as_ref().map(remainder_type_arm))
         .collect();
     let config_arms: Vec<TokenStream> = concrete_enum
         .variants
         .iter()
         .map(|variant| config_arm(&concrete_enum.path, variant))
+        .chain(concrete_enum.remainder.as_ref().map(remainder_config_arm))
         .collect();
 
     let hidden_name = hidden_name(&concrete_enum.name, &macro_name, &type_arms);
@@ -38,7 +40,11 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         (quote! {}, quote! { pub(crate) })
     };
 
-    let variants = concrete_enum.variants.iter().map(variant_entry);
+    let variants = concrete_enum
+        .variants
+        .iter()
+        .map(variant_entry)
+        .chain(concrete_enum.remainder.as_ref().map(remainder_entry));
 
     quote! {
         #[doc(hidden)]
@@ -109,6 +115,12 @@ fn variant_entry(variant: &ConcreteVariant) -> TokenStream {
     }
 }
 
+fn remainder_entry(remainder: &Path) -> TokenStream {
+    let concrete = to_macro_path(remainder);
+
+    quote! { _ => #concrete }
+}
+
 fn type_arm(enum_path: &TokenStream, variant: &ConcreteVariant) -> TokenStream {
     let ident = &variant.ident;
     let concrete = to_macro_path(&variant.concrete);
@@ -142,6 +154,35 @@ fn config_arm(enum_path: &TokenStream, variant: &ConcreteVariant) -> TokenStream
             {
                 type $concrete = __ConcreteType;
                 let $config = #config;
+                $body
+            }
+        }
+    }
+}
+
+fn remainder_type_arm(remainder: &Path) -> TokenStream {
+    let concrete = to_macro_path(remainder);
+
+    quote! {
+        _ => {
+            type __ConcreteType = #concrete;
+            {
+                type $concrete = __ConcreteType;
+                $body
+            }
+        }
+    }
+}
+
+fn remainder_config_arm(remainder: &Path) -> TokenStream {
+    let concrete = to_macro_path(remainder);
+
+    quote! {
+        _ => {
+            type __ConcreteType = #concrete;
+            {
+                type $concrete = __ConcreteType;
+                let $config = ();
                 $body
             }
         }

@@ -2,10 +2,12 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
+use crate::concrete_map::ConcreteMap;
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
 
 mod bound;
+mod concrete_map;
 mod crate_path;
 mod derive;
 mod matcher;
@@ -38,4 +40,30 @@ pub fn derive_concrete(input: TokenStream) -> TokenStream {
     derive::expand(&input)
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()
+}
+
+/// Maps the variants of an enum defined elsewhere, which cannot carry `#[derive(Concrete)]`.
+///
+/// ```text
+/// concrete_map! {
+///     #[concrete(bound(Trait + Send))]
+///     pub path::to::Enum => {
+///         Unit => path::to::Type,
+///         Data(_) => path::to::Other,
+///         _ => path::to::Remainder,
+///     }
+/// }
+/// ```
+///
+/// Emits the same matcher macro as [`Concrete`](derive@Concrete), named after the enum in snake
+/// case beside the invocation. `Data(_)` marks a variant carrying one unnamed field of
+/// configuration, and a final `_ => Type` maps every variant not listed. The bound and a `pub`
+/// visibility, which exports the macro to other crates, are optional; several enums may share one
+/// invocation. The macro's patterns spell the enum as written here, with `crate::` rewritten to
+/// `$crate::`.
+#[proc_macro]
+pub fn concrete_map(input: TokenStream) -> TokenStream {
+    let map = parse_macro_input!(input as ConcreteMap);
+
+    concrete_map::expand(&map).into()
 }
