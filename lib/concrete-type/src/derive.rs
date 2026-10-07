@@ -4,7 +4,7 @@ use crate::{
 };
 use proc_macro2::TokenStream;
 use quote::ToTokens;
-use syn::{Data, DeriveInput, Expr, ExprLit, Fields, Lit, Meta, Path, Variant};
+use syn::{Data, DeriveInput, Expr, ExprLit, Fields, Lit, Meta, Path, Variant, Visibility};
 
 pub fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     let concrete_enum = parse(input)?;
@@ -29,6 +29,7 @@ fn parse(input: &DeriveInput) -> syn::Result<ConcreteEnum> {
     Ok(ConcreteEnum {
         name: input.ident.clone(),
         path: input.ident.to_token_stream(),
+        exported: matches!(input.vis, Visibility::Public(_)),
         variants,
     })
 }
