@@ -1,0 +1,19 @@
+[package]
+name = "concrete-type-rules"
+version = "0.1.1"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Rules and validation for concrete types"
+documentation = "https://docs.rs/concrete-type-rules"
+readme = "README.md"
+keywords = ["enum", "type-level", "static-dispatch"]
+categories = ["rust-patterns"]
+
+[dependencies]
+# Workspace crates
+concrete-type = { workspace = true }
+
+# Macros
+paste = { workspace = true }

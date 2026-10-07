@@ -1,6 +1,16 @@
 [workspace]
 resolver = "3"
-members = []
+members = [
+    "lib/component-map",
+    "lib/concrete-type",
+    "lib/concrete-type-rules",
+]
+
+[workspace.package]
+edition = "2024"
+authors = ["JustAStream <justastream.code@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/just-a-stream/open-core"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -19,5 +29,19 @@ type_complexity = "allow"
 too_many_arguments = "allow"
 
 [workspace.dependencies]
+# Workspace crates
+concrete-type = { path = "lib/concrete-type", version = "0.3" }
+
 # Async
+futures = { version = "0.3", default-features = false }
 tokio = { version = "1.53", default-features = false }
+
+# Util
+derive_more = { version = "2.1", default-features = false }
+
+# Macros
+convert_case = { version = "0.10", default-features = false }
+paste = { version = "1.0", default-features = false }
+proc-macro2 = { version = "1.0", default-features = false }
+quote = { version = "1.0", default-features = false }
+syn = { version = "2.0", default-features = false }

@@ -1,0 +1,22 @@
+[package]
+name = "concrete-type"
+version = "0.3.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A procedural macro crate for mapping enum variants to concrete types, enabling type-level programming based on runtime values"
+documentation = "https://docs.rs/concrete-type"
+readme = "README.md"
+keywords = ["macros", "enum", "type-level", "proc-macro", "static-dispatch"]
+categories = ["rust-patterns", "development-tools::procedural-macro-helpers", "no-std::no-alloc"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+# Macros
+convert_case = { workspace = true }
+proc-macro2 = { workspace = true, features = ["proc-macro"] }
+quote = { workspace = true, features = ["proc-macro"] }
+syn = { workspace = true, features = ["derive", "full", "extra-traits", "parsing", "printing", "clone-impls", "proc-macro"] }
