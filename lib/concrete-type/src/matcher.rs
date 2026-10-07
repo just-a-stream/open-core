@@ -34,12 +34,22 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         .collect();
 
     let hidden_name = hidden_name(&concrete_enum.name, &macro_name, &type_arms);
+    let enum_name = &concrete_enum.name;
     let (export, reexport_vis) = if concrete_enum.exported {
         (quote! { #[macro_export] }, quote! { pub })
     } else {
         (quote! {}, quote! { pub(crate) })
     };
 
+    let enum_alias = (enum_name.unraw() != macro_name.unraw()).then(|| {
+        quote! {
+            #[doc(hidden)]
+            #[allow(unused_imports)]
+            #reexport_vis use #hidden_name as #enum_name;
+        }
+    });
+
+    let enum_path = concrete_enum.foreign.then_some(&concrete_enum.path);
     let variants = concrete_enum
         .variants
         .iter()
@@ -51,7 +61,7 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         #export
         macro_rules! #hidden_name {
             (@concrete_type_variants [$($callback:tt)*] { $($state:tt)* }) => {
-                $($callback)*! { { $($state)* } [ #(#variants),* ] }
+                $($callback)*! { { $($state)* } [ (#enum_path) #(#variants),* ] }
             };
             ($value:expr; $concrete:ident => $body:block) => {
                 match $value {
@@ -78,6 +88,8 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         #[doc = #doc]
         #[allow(unused_imports)]
         #reexport_vis use #hidden_name as #macro_name;
+
+        #enum_alias
     }
 }
 

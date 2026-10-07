@@ -8,31 +8,30 @@ use syn::{DeriveInput, parse_macro_input};
 
 mod bound;
 mod concrete_map;
+mod concrete_match;
 mod crate_path;
 mod derive;
 mod matcher;
 mod model;
 
-/// Maps each variant of an enum to a concrete type.
+/// Maps each variant to the type named by `#[concrete(path::to::Type)]`.
 ///
-/// Every variant carries `#[concrete(path::to::Type)]` and either no data or exactly one
-/// unnamed field holding its configuration. The derive emits a matcher macro named after the
-/// enum in snake case (`exchange!` for `Exchange`) with two forms:
+/// Emits a matcher named after the enum in snake case: `exchange!(value; T => body)` runs the
+/// body with `T` set to the matched variant's type, and `exchange!(value; (T, config) => body)`
+/// also binds the variant's single field (`()` for a unit variant). An optional
+/// `#[concrete(bound(Trait + Send))]` on the enum checks every type at its variant:
 ///
-/// - `exchange!(value; T => body)` evaluates the body with `T` aliased to the matched
-///   variant's concrete type;
-/// - `exchange!(value; (T, config) => body)` also binds the variant's configuration to
-///   `config`, `()` for a unit variant.
+/// ```compile_fail,E0277
+/// # use concrete_type::Concrete;
+/// trait Venue {}
+/// struct Binance;
 ///
-/// `#[concrete(bound(Trait + Send + 'static))]` on the enum asserts that every concrete type
-/// satisfies the bound list, failing at the offending variant.
-///
-/// A path starting with `crate::` is rewritten to `$crate::`, so the macro resolves it from any
-/// crate; any other path resolves where the macro is called.
-///
-/// For macros that build on the matcher, `exchange!(@concrete_type_variants [callback] { state })`
-/// expands to `callback! { { state } [ Variant => Type, Data(_) => Type ] }`, listing every
-/// variant with its concrete type, a data variant marked `(_)`.
+/// #[derive(Concrete)]
+/// #[concrete(bound(Venue))]
+/// # #[concrete(bound(Send))]
+/// enum Exchange { #[concrete(Binance)] Binance }
+/// # fn main() {}
+/// ```
 #[proc_macro_derive(Concrete, attributes(concrete))]
 pub fn derive_concrete(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -42,28 +41,34 @@ pub fn derive_concrete(input: TokenStream) -> TokenStream {
         .into()
 }
 
-/// Maps the variants of an enum defined elsewhere, which cannot carry `#[derive(Concrete)]`.
+/// Matches several enums at once, binding each one's concrete type.
 ///
-/// ```text
-/// concrete_map! {
-///     #[concrete(bound(Trait + Send))]
-///     pub path::to::Enum => {
-///         Unit => path::to::Type,
-///         Data(_) => path::to::Other,
-///         _ => path::to::Remainder,
-///     }
-/// }
-/// ```
+/// `concrete!(match (exchange, strategy) { (E: Exchange, S: Strategy) => body })`, where
+/// `E(config): Exchange` also binds a variant's field and a bare `Exchange` binds the type under
+/// the enum's own name.
+#[proc_macro]
+pub fn concrete(input: TokenStream) -> TokenStream {
+    concrete_match::expand(input.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
+/// Maps the variants of an enum from another crate, which cannot take the derive.
 ///
-/// Emits the same matcher macro as [`Concrete`](derive@Concrete), named after the enum in snake
-/// case beside the invocation. `Data(_)` marks a variant carrying one unnamed field of
-/// configuration, and a final `_ => Type` maps every variant not listed. The bound and a `pub`
-/// visibility, which exports the macro to other crates, are optional; several enums may share one
-/// invocation. The macro's patterns spell the enum as written here, with `crate::` rewritten to
-/// `$crate::`.
+/// `concrete_map! { other::Enum => { Unit => Type, Data(_) => Type, _ => Type } }` emits the
+/// same matcher as [`Concrete`](derive@Concrete); `_` maps every variant not listed. In another
+/// module, `concrete!` binds the enum through the map's module, as in `T: maps::Enum`.
 #[proc_macro]
 pub fn concrete_map(input: TokenStream) -> TokenStream {
     let map = parse_macro_input!(input as ConcreteMap);
 
     concrete_map::expand(&map).into()
+}
+
+#[doc(hidden)]
+#[proc_macro]
+pub fn __concrete_step(input: TokenStream) -> TokenStream {
+    concrete_match::step(input.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }
