@@ -88,7 +88,7 @@ where
     where
         Self: Stream<Item = Socket> + Sized,
         Socket: Stream,
-        TimeoutHandler: StreamTimeoutHandler + Clone + 'static,
+        TimeoutHandler: StreamTimeoutHandler + Clone,
     {
         use futures::StreamExt;
         self.map(move |socket| OnStreamTimeout::new(socket, timeout_next_item, on_timeout.clone()))
