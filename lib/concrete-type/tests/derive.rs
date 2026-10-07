@@ -1,6 +1,7 @@
 #![allow(unused_crate_dependencies)]
 
 use concrete_type::Concrete;
+use config::ExchangeConfig;
 use std::mem::size_of;
 
 mod core {
@@ -55,16 +56,21 @@ enum Width {
     Shadowed,
 }
 
-#[derive(Concrete)]
-enum ExchangeConfig {
-    #[concrete = "crate::exchanges::Binance"]
-    Binance(exchanges::BinanceConfig),
-    #[concrete = "crate::exchanges::Okx"]
-    Okx,
+mod config {
+    use crate::exchanges;
+    use concrete_type::Concrete;
+
+    #[derive(Concrete)]
+    pub enum ExchangeConfig {
+        #[concrete = "crate::exchanges::Binance"]
+        Binance(exchanges::BinanceConfig),
+        #[concrete = "crate::exchanges::Okx"]
+        Okx,
+    }
 }
 
 fn build(config: ExchangeConfig) -> Result<&'static str, &'static str> {
-    let name = exchange_config!(config; (Exchange, cfg) => { Exchange::build(cfg)? });
+    let name = crate::config::exchange_config!(config; (Exchange, cfg) => Exchange::build(cfg)?);
 
     Ok(name)
 }
@@ -79,7 +85,7 @@ fn concrete_maps_each_variant_to_its_type_path() {
 }
 
 #[test]
-fn concrete_binds_each_variant_to_its_type_and_config() {
+fn concrete_binds_each_variant_to_its_type_and_config_through_the_enum_module_path() {
     let binance = ExchangeConfig::Binance(exchanges::BinanceConfig { api_key: "key" });
     let unkeyed = ExchangeConfig::Binance(exchanges::BinanceConfig { api_key: "" });
 

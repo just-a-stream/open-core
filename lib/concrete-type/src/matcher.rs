@@ -4,7 +4,8 @@ use crate::{
 };
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, TokenStream};
-use quote::quote;
+use quote::{format_ident, quote};
+use std::hash::{DefaultHasher, Hash, Hasher};
 use syn::ext::IdentExt;
 
 pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
@@ -30,10 +31,17 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
         .map(|variant| config_arm(&concrete_enum.path, variant))
         .collect();
 
+    let hidden_name = hidden_name(&concrete_enum.name, &macro_name, &type_arms);
+    let (export, reexport_vis) = if concrete_enum.exported {
+        (quote! { #[macro_export] }, quote! { pub })
+    } else {
+        (quote! {}, quote! { pub(crate) })
+    };
+
     quote! {
-        #[doc = #doc]
-        #[macro_export]
-        macro_rules! #macro_name {
+        #[doc(hidden)]
+        #export
+        macro_rules! #hidden_name {
             ($value:expr; $concrete:ident => $body:block) => {
                 match $value {
                     #(#type_arms)*
@@ -55,6 +63,10 @@ pub fn emit(concrete_enum: &ConcreteEnum) -> TokenStream {
                 }
             };
         }
+
+        #[doc = #doc]
+        #[allow(unused_imports)]
+        #reexport_vis use #hidden_name as #macro_name;
     }
 }
 
@@ -71,6 +83,15 @@ pub fn macro_name(enum_name: &Ident) -> syn::Result<Ident> {
         }
         _ => Ok(Ident::new_raw(&snake, enum_name.span())),
     }
+}
+
+fn hidden_name(enum_name: &Ident, macro_name: &Ident, type_arms: &[TokenStream]) -> Ident {
+    let site = enum_name.span().unwrap();
+    let mut hasher = DefaultHasher::new();
+    (site.file(), site.line(), site.column()).hash(&mut hasher);
+    quote! { #(#type_arms)* }.to_string().hash(&mut hasher);
+
+    format_ident!("__concrete_type_{}_{:016x}", macro_name, hasher.finish())
 }
 
 fn type_arm(enum_path: &TokenStream, variant: &ConcreteVariant) -> TokenStream {

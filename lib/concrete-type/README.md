@@ -94,6 +94,12 @@ fn main() {
 
 ## Path resolution
 
+The matcher macro lives beside its enum: an enum at `crate::config::Exchange` gets
+`crate::config::exchange!`, callable by path or imported with `use`, with no dependence on
+textual order. A `pub` enum's macro is also exported, so another crate calls
+`dependency::config::exchange!`. The macro names the enum unqualified, so the enum must be in
+scope where the macro is called.
+
 A `#[concrete]` path starting with `crate::` is rewritten to `$crate::`, so the generated
 macro resolves it from the defining crate and from any other. Any other path resolves where
 the macro is called: use it for types from external crates.
