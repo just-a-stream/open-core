@@ -1,0 +1,19 @@
+[package]
+name = "codec-core"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Encoder and Decoder traits for turning values into bytes and back"
+documentation = "https://docs.rs/codec-core"
+readme = "README.md"
+keywords = ["codec", "encode", "decode", "bytes"]
+categories = ["encoding"]
+
+[lints]
+workspace = true
+
+[dependencies]
+# Util
+bytes = { workspace = true }
