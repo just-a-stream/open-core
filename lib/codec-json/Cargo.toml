@@ -1,0 +1,30 @@
+[package]
+name = "codec-json"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "JSON Encoder and Decoder for codec-core, backed by serde_json"
+documentation = "https://docs.rs/codec-json"
+readme = "README.md"
+keywords = ["codec", "json", "serde", "encode", "decode"]
+categories = ["encoding"]
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+# Test
+allocation-counter = { workspace = true }
+
+[dependencies]
+# Workspace crates
+codec-core = { workspace = true }
+
+# Util
+bytes = { workspace = true }
+
+# Serialisation
+serde = { workspace = true }
+serde_json = { workspace = true, features = ["std"] }

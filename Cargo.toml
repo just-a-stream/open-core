@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "lib/codec-core",
+    "lib/codec-json",
     "lib/component-map",
     "lib/concrete-type",
     "lib/idx-core",
@@ -55,3 +56,7 @@ syn = { version = "3.0", default-features = false }
 
 # Serialisation
 serde = { version = "1.0", default-features = false }
+serde_json = { version = "1.0", default-features = false }
+
+# Test
+allocation-counter = { version = "0.8", default-features = false }
