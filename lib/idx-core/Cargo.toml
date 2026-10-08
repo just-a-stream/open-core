@@ -1,0 +1,25 @@
+[package]
+name = "idx-core"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Sequential u64 index newtypes, index spans and an indexed value wrapper"
+documentation = "https://docs.rs/idx-core"
+readme = "README.md"
+keywords = ["index", "sequence", "newtype", "event"]
+categories = ["data-structures", "rust-patterns"]
+
+[features]
+serde = ["dep:serde"]
+
+[lints]
+workspace = true
+
+[dependencies]
+# Util
+thiserror = { workspace = true }
+
+# Serialisation
+serde = { workspace = true, optional = true, features = ["derive"] }
