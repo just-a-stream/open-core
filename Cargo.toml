@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "lib/codec-core",
     "lib/component-map",
     "lib/concrete-type",
     "lib/idx-core",
@@ -31,6 +32,7 @@ too_many_arguments = "allow"
 
 [workspace.dependencies]
 # Workspace crates
+codec-core = { path = "lib/codec-core", version = "0.1" }
 concrete-type = { path = "lib/concrete-type", version = "0.3" }
 
 # Async
@@ -41,6 +43,7 @@ tokio-stream = { version = "0.1", default-features = false }
 tokio-test = { version = "0.4", default-features = false }
 
 # Util
+bytes = { version = "1.0", default-features = false }
 derive_more = { version = "2.1", default-features = false }
 thiserror = { version = "2.0", default-features = false }
 
