@@ -3,6 +3,8 @@
 use thiserror::Error;
 
 mod define_index;
+#[cfg(feature = "map")]
+pub mod map;
 #[cfg(feature = "serde")]
 #[doc(hidden)]
 pub mod serde;

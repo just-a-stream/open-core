@@ -18,6 +18,7 @@ assert_eq!(Index::new(u64::MAX).next(), None);
 An index prints and parses as a plain number; `01` or `+1` does not parse.
 Once the numbers run out, `next` and `advance` return `None`.
 
+The `map` feature adds `map::IndexMap`, a list you look items up in by index.
 The `serde` feature serialises every index, your own included, as a plain
 number, without your crate depending on serde.
 

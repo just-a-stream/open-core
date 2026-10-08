@@ -5,13 +5,14 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Sequential u64 index newtypes, index spans and an indexed value wrapper"
+description = "Sequential u64 index newtypes, index spans, an index map and an indexed event wrapper"
 documentation = "https://docs.rs/idx-core"
 readme = "README.md"
 keywords = ["index", "sequence", "newtype", "event"]
 categories = ["data-structures", "rust-patterns"]
 
 [features]
+map = ["serde?/alloc"]
 serde = ["dep:serde"]
 
 [lints]
