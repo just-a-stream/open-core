@@ -1,4 +1,4 @@
-use crate::{reactor::Reactor, state::Update};
+use crate::{reactor::Reactor, state::UpdateByRef};
 
 pub trait Repository<Event, Reaction> {
     type Error;
@@ -28,7 +28,7 @@ pub fn run<R, Event, Audit, Repo, Error>(
 ) -> Result<(), Error>
 where
     R: Reactor<Event>,
-    R::State: Update<Event, Audit = Audit> + Update<R::Reaction, Audit = Audit>,
+    R::State: UpdateByRef<Event, Audit = Audit> + UpdateByRef<R::Reaction, Audit = Audit>,
     Repo: Repository<Event, R::Reaction>,
     Error: From<Repo::Error>,
 {
@@ -55,11 +55,11 @@ fn step<R, Event, Audit>(
     audits: &mut Vec<Audit>,
 ) where
     R: Reactor<Event>,
-    R::State: Update<Event, Audit = Audit> + Update<R::Reaction, Audit = Audit>,
+    R::State: UpdateByRef<Event, Audit = Audit> + UpdateByRef<R::Reaction, Audit = Audit>,
 {
-    audits.push(state.process(event));
+    audits.push(state.process_ref(event));
     reactor.react(state, event, |reaction| decided.push(reaction));
-    audits.extend(decided.iter().map(|reaction| state.process(reaction)));
+    audits.extend(decided.iter().map(|reaction| state.process_ref(reaction)));
 }
 
 pub fn replay<State, Event, Reaction, Error>(
@@ -67,16 +67,16 @@ pub fn replay<State, Event, Reaction, Error>(
     history: impl IntoIterator<Item = Result<Replayed<State, Event, Reaction>, Error>>,
 ) -> Result<(), Error>
 where
-    State: Update<Event> + Update<Reaction>,
+    State: UpdateByRef<Event> + UpdateByRef<Reaction>,
 {
     history.into_iter().try_for_each(|replayed| {
         match replayed? {
             Replayed::Snapshot(snapshot) => *state = snapshot,
             Replayed::Recorded(Recorded::Observed(event)) => {
-                state.process(&event);
+                state.process_ref(&event);
             }
             Replayed::Recorded(Recorded::Decided(reaction)) => {
-                state.process(&reaction);
+                state.process_ref(&reaction);
             }
         }
 
@@ -87,6 +87,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::Update;
     use std::{cell::RefCell, rc::Rc};
 
     #[derive(Debug, Clone, Eq, PartialEq, Default)]
@@ -101,7 +102,7 @@ mod tests {
     #[derive(Debug, Clone, Eq, PartialEq)]
     struct Refund(u64);
 
-    impl Update<Deposit> for Till {
+    impl Update<&Deposit> for Till {
         type Audit = String;
 
         fn process(&mut self, Deposit(amount): &Deposit) -> String {
@@ -110,7 +111,7 @@ mod tests {
         }
     }
 
-    impl Update<Refund> for Till {
+    impl Update<&Refund> for Till {
         type Audit = String;
 
         fn process(&mut self, Refund(amount): &Refund) -> String {
