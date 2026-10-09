@@ -1,4 +1,4 @@
-use crate::{reactor::Reactor, state::Update};
+use crate::{reactor::Reactor, state::UpdateByRef};
 
 enum StateAudit<E, R> {
     Event(E),
@@ -9,14 +9,14 @@ fn next<R, Event>(
     state: &mut R::State,
     reactor: &R,
     event: Event,
-    mut audit: impl FnMut(StateAudit<<R::State as Update<Event>>::Audit, <R::State as Update<R::Reaction>>::Audit>),
+    mut audit: impl FnMut(StateAudit<<R::State as UpdateByRef<Event>>::Audit, <R::State as UpdateByRef<R::Reaction>>::Audit>),
     reaction_buff: &mut Vec<R::Reaction>,
 )
 where
     R: Reactor<Event>,
-    R::State: Update<Event> + Update<R::Reaction>,
+    R::State: UpdateByRef<Event> + UpdateByRef<R::Reaction>,
 {
-    audit(StateAudit::Event(state.process(&event)));
+    audit(StateAudit::Event(state.process_ref(&event)));
 
     reactor.react(
         &state,
@@ -25,7 +25,7 @@ where
     );
 
     for reaction in reaction_buff.iter() {
-        audit(StateAudit::Reaction(state.process(reaction)));
+        audit(StateAudit::Reaction(state.process_ref(reaction)));
     }
 }
 
@@ -42,18 +42,19 @@ where
 //
 // }
 
-fn process_reactions<Reactions, Reaction, State>(
+fn process_reactions<'a, Reactions, Reaction, State>(
     reactions: Reactions,
     state: &mut State,
-    audit: impl FnMut(State::Audit),
+    mut audit: impl FnMut(State::Audit),
 )
 where
     Reactions: IntoIterator<Item = &'a Reaction>,
-    State: Update<Reaction>,
+    Reaction: 'a,
+    State: UpdateByRef<Reaction>,
 {
     let mut reactions = reactions.into_iter();
     while let Some(reaction) = reactions.next() {
-        audit(state.process(reaction))
+        audit(state.process_ref(reaction))
     }
 }
 
@@ -61,12 +62,12 @@ fn process_and_react<R, Event>(
     state: &mut R::State,
     reactor: &R,
     event: &Event,
-    audit: impl FnMut(<R::State as Update<Event>>::Audit),
+    audit: impl FnMut(<R::State as UpdateByRef<Event>>::Audit),
     emit: impl FnMut(R::Reaction)
 )
 where
     R: Reactor<Event>,
-    R::State: Update<Event>,
+    R::State: UpdateByRef<Event>,
 {
     process_with_audit(state, event, audit);
     react(reactor, state, event, emit);
@@ -78,9 +79,9 @@ fn process_with_audit<State, Event>(
     mut audit: impl FnMut(State::Audit)
 )
 where
-    State: Update<Event>,
+    State: UpdateByRef<Event>,
 {
-    audit(state.process(&event));
+    audit(state.process_ref(event));
 }
 
 fn react<R, Event>(
@@ -91,7 +92,7 @@ fn react<R, Event>(
 )
 where
     R: Reactor<Event>,
-    R::State: Update<R::Reaction>,
+    R::State: UpdateByRef<R::Reaction>,
 {
     reactor.react(state, event, emit)
 }

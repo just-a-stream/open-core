@@ -1,8 +1,9 @@
 # engine-core
 
-The event-loop contracts: `Update`, a state that processes one input at a time and returns its
-audit, `Reactor`, which answers each event from the state that event made, and `run`/`replay`,
-the synchronous loop that drives them through a `Repository`.
+The event-loop contracts: `Update`, a state that processes one input at a time, owned or
+borrowed, and returns its audit; `UpdateByRef`, the bound for a state that only borrows it;
+`Reactor`, which answers each event from the state that event made; and `run`/`replay`, the
+synchronous loop that drives them through a `Repository`.
 
 ## Provenance
 
