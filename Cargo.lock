@@ -93,21 +93,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-core"
-version = "0.1.0"
-dependencies = [
- "derive_more",
- "serde",
-]
-
-[[package]]
 name = "engine-runner"
 version = "0.1.0"
 dependencies = [
  "derive_more",
- "engine-core",
+ "engine-sync",
  "futures",
  "pin-project-lite",
+]
+
+[[package]]
+name = "engine-sync"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "serde",
 ]
 
 [[package]]

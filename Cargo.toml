@@ -5,8 +5,8 @@ members = [
     "lib/codec-json",
     "lib/component-map",
     "lib/concrete-type",
-    "lib/engine/engine-core",
     "lib/engine/engine-runner",
+    "lib/engine/engine-sync",
     "lib/idx-core",
     "lib/socket-reconnect",
 ]
@@ -37,7 +37,7 @@ too_many_arguments = "allow"
 # Workspace crates
 codec-core = { path = "lib/codec-core", version = "0.1" }
 concrete-type = { path = "lib/concrete-type", version = "0.3" }
-engine-core = { path = "lib/engine/engine-core", version = "0.1" }
+engine-sync = { path = "lib/engine/engine-sync", version = "0.1" }
 
 # Async
 futures = { version = "0.3", default-features = false }

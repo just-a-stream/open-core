@@ -1,5 +1,5 @@
 use derive_more::{Display, Error};
-use engine_core::UpdateByRef;
+use engine_sync::UpdateByRef;
 use futures::{Stream, ready};
 use pin_project_lite::pin_project;
 use std::{
