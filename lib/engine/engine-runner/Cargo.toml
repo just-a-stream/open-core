@@ -1,0 +1,26 @@
+[package]
+name = "engine-runner"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Drivers and lazy stream stages that run an engine-core engine, its executor and its read replica"
+documentation = "https://docs.rs/engine-runner"
+readme = "README.md"
+keywords = ["engine", "event-sourcing", "stream", "executor", "replica"]
+categories = ["asynchronous", "rust-patterns"]
+
+[lints]
+workspace = true
+
+[dependencies]
+# Workspace crates
+engine-core = { workspace = true }
+
+# Async
+futures = { workspace = true, features = ["alloc"] }
+pin-project-lite = { workspace = true }
+
+# Util
+derive_more = { workspace = true, features = ["display", "error"] }
