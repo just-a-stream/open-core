@@ -5,7 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Drivers and lazy stream stages that run an engine-core engine, its executor and its read replica"
+description = "Drivers and lazy stream stages that run an engine-sync engine, its executor and its read replica"
 documentation = "https://docs.rs/engine-runner"
 readme = "README.md"
 keywords = ["engine", "event-sourcing", "stream", "executor", "replica"]
@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 # Workspace crates
-engine-core = { workspace = true }
+engine-sync = { workspace = true }
 
 # Async
 futures = { workspace = true, features = ["alloc"] }

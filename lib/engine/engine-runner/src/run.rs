@@ -1,5 +1,5 @@
 use derive_more::{Display, Error};
-use engine_core::{Fanout, FanoutFailure, Update};
+use engine_sync::{Fanout, FanoutFailure, Update};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Display, Error)]
 pub enum RunError<UpdateError, FanoutError> {

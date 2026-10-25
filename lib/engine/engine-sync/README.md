@@ -1,4 +1,4 @@
-# engine-core
+# engine-sync
 
 Contracts and types for a deterministic, synchronous event engine. The crate
 knows no events, states, reactions or transport of its own, and it has no
