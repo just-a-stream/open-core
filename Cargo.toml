@@ -5,8 +5,6 @@ members = [
     "lib/codec-json",
     "lib/component-map",
     "lib/concrete-type",
-    "lib/engine/engine-runner",
-    "lib/engine/engine-sync",
     "lib/idx-core",
     "lib/socket-reconnect",
 ]
@@ -37,12 +35,10 @@ too_many_arguments = "allow"
 # Workspace crates
 codec-core = { path = "lib/codec-core", version = "0.1" }
 concrete-type = { path = "lib/concrete-type", version = "0.3" }
-engine-sync = { path = "lib/engine/engine-sync", version = "0.1" }
 
 # Async
 futures = { version = "0.3", default-features = false }
 pin-project = { version = "1.1", default-features = false }
-pin-project-lite = { version = "0.2", default-features = false }
 tokio = { version = "1.53", default-features = false }
 tokio-stream = { version = "0.1", default-features = false }
 tokio-test = { version = "0.4", default-features = false }
